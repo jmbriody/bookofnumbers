@@ -123,7 +123,7 @@ def quinmc(nIn):
         term_list, DONE = _merge_terms_(term_list, current_generation)
         current_generation += 1
 
-    final_result, possibles = _minimize_(nIn, [x for x in term_list if x.used is False])
+    final_result, possibles = _minimize_([x for x in term_list if x.used is False])
 
     result = ["".join(sorted(tempItem.termset)) for tempItem in final_result]
 
@@ -186,7 +186,7 @@ def _get_columns_(needed, required):
     return needed, final_l, keep
 
 @coverage
-def _minimize_(cdnum, needed):
+def _minimize_(needed):
     # find essential prime implicants
     required = _required_sources_(needed)
     needed, final_list, keep_columns = _get_columns_(needed, required)
@@ -211,27 +211,30 @@ def _minimize_(cdnum, needed):
         # check if single term will "cover" remaining items e.g. qmc(2077)
         for idx, val in find_dict.items():
             if set(keep_columns) == val.sourceSet:
-                print(cdnum)
                 final_list.append(needed[idx])
                 FINISHED = True
                 break
         if FINISHED:
             break
 
+        # if a single term doesn't cover the remaining 1st gen items start looking
+        # for combinations of Terms that will fit the bill. 
         for x in range(2, combos):
-            # currentCombos = list(itertools.combinations(key_list, x))
             for items in itertools.combinations(key_list, x):
                 combined_sources = set()
                 for idx in items:
                     combined_sources.update(find_dict[idx].sourceSet)
                 if set(keep_columns) == combined_sources:
                     matches.append(items)
+            # Found at least 1 set of terms that will work
             if len(matches) > 0:
                 FINISHED = True
                 for idx, value in enumerate(matches):
+                    # use the first one found in result
                     for i in value:
                         if idx == 0:
                             final_list.append(needed[i])
+                        # also create a list of all options that will fit the bill
                         possible_terms[idx].append(needed[i])
                 break
         FINISHED = True
