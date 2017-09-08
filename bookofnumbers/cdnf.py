@@ -11,38 +11,38 @@ General format of results are:
     "+" is Or
 So "AB + C'" is (A AND B) or (Not C)
 
-In the standard mode (reverse = False) A is the low order bit:
+In the standard mode (highorder_a = True) A is the high order bit:
 
-    BP  |  C  |  B  |  A     248 (11111000)
+    BP  |  A  |  B  |  C     248 (11111000)
     ---------------------    ---
     1   |  0  |  0  |  0      0
     2   |  0  |  0  |  1      0
     3   |  0  |  1  |  0      0
-    4   |  0  |  1  |  1      1     ABC'
-    5   |  1  |  0  |  0      1     A'B'C
+    4   |  0  |  1  |  1      1     A'BC
+    5   |  1  |  0  |  0      1     AB'C'
     6   |  1  |  0  |  1      1     AB'C
-    7   |  1  |  1  |  0      1     A'BC
+    7   |  1  |  1  |  0      1     ABC'
     8   |  1  |  1  |  1      1     ABC
 
-When reverse is True C would be the low order bit for 248.
+When highorder_a is False A would be the low order bit for 248.
 
 Two primary user functions are:
-caononical(x, reverse=False, includef=False):
+caononical(x, highorder_a=False, includef=False):
     Simplest call is canonical(248) which will return the canonical boolean algebraic expression
-    for "248". In the default setup A is the Low Order bit (reverse=False)--i.e. 0101. When reverse
-    is True A will be the High Order bit--i.e. 0000111100001111. includef determines whether
-    "F(248) = " should be prepended to the result.
+    for "248". In the default setup A is the Low Order bit (highorder_a=False)--i.e. 0101.
+    When highorder_a is True A will be the High Order bit--i.e. 0000111100001111. includef
+    determines whether "F(248) = " should be prepended to the result.
 
 
 
 >>> canonical(248)
+"ABC + ABC' + AB'C + AB'C' + A'BC"
+>>> canonical(248, False)
 "ABC + A'BC + AB'C + A'B'C + ABC'"
->>> canonical(248, True)
-"CBA + C'BA + CB'A + C'B'A + CBA'"
->>> canonical(248, False, True)
-"f(248) = ABC + A'BC + AB'C + A'B'C + ABC'"
+>>> canonical(248, True, True)
+"f(248) = ABC + ABC' + AB'C + AB'C' + A'BC"
 
-quinmc(myitem, reverse=False, full_results=False):
+quinmc(myitem, highorder_a=True, full_results=False):
     Short for Quinn-McCluskey algorithm:
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
 
@@ -51,7 +51,7 @@ quinmc(myitem, reverse=False, full_results=False):
     --integer: first passed to canonical to get the normal form
     --string or list: must contain minterms that are canonical normal form terms
 
-    reverse: Same as for canonical. Only has any affect if "myitem" is an int.
+    highorder_a: Same as for canonical. Only has any affect if "myitem" is an int.
 
     full_results: In the default mode "False" only a string containing the minimized function is
     returned. When True a list of various data structures is returned.
@@ -62,9 +62,9 @@ quinmc(myitem, reverse=False, full_results=False):
     the whole canonical form. Essentially items generated using Petrick's Method. May be empty.
 
 >>> quinmc(248)
-'AB + C'
->>> quinmc(248, True)
 'BC + A'
+>>> quinmc(248, False)
+'AB + C'
 >>> quinmc("ABC + A'BC + AB'C + A'B'C + ABC'")
 'AB + C'
 >>> quinmc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
@@ -72,14 +72,14 @@ quinmc(myitem, reverse=False, full_results=False):
 >>> result, final_result, term_list, possibles = quinmc(248, False, True)
 
 """
-
+from __future__ import division # needed for python2
 import re
 import math
 import itertools
 import string
 from collections import namedtuple, defaultdict
 from operator import attrgetter
-from profilehooks import coverage, profile
+# from profilehooks import coverage, profile
 
 # Term is a namedtuple used by the Quin-McCluskey reduction portion of the code.
 # A list of Terms is used for the minimize process and another list is used for
@@ -100,7 +100,7 @@ from profilehooks import coverage, profile
 # large and can be slow.
 Term = namedtuple('Term', 'termset used ones source generation')
 
-def canonical(x, reverse=False, includef=False):
+def canonical(x, highorder_a=True, includef=False):
     """
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
 
@@ -109,101 +109,43 @@ def canonical(x, reverse=False, includef=False):
     "Digital Design" from Randall Hyde's "The Art of Assembly Language Programming"
 http://www.plantation-productions.com/Webster/www.artofasm.com/Linux/PDFs/DigitalDesign.pdf
 
-    reverse: When "False" (default) A is the low order bit. When True A is the high order
+    highorder_a: When "False" (default) A is the low order bit. When True A is the high order
     bit.
 
     includef: When True will append "F(x) = " before the result string
 
     """
-    binary = format(x, 'b') # obviously convert to binary
-    letters = _letters_(len(binary)) # determine the number of letters a minterm will contain
-    # Reverse the binary and create a list of all the positions with a "1".
+    binary = format(x, 'b')
     binary = binary[::-1]
-    indexes = [(i.start() + 1) for i in re.finditer('1', binary)]
-    # Use the position list to generate our minterms
-    miniterms = [_miniterms_(m, letters, reverse) for m in indexes[::-1]]
+    letters = len(format(len(binary) - 1, 'b'))
+    if letters == 1:
+        letters = 2
+    # highorder_a the binary and create a list of all the positions with a "1".
 
+    indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
+
+    miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
     result = ' + '.join(miniterms)
+
     if includef is True:
         result = "f(" + str(x) + ") = " + result
     return result
 
-
-def _letters_(length):
-    """
-    Based on the length of the binary number determine the number of letters
-    in a minterm.
-
-    We start with 2 letters ( A and B ) for four bits. Available minterms would be
-    A'B', AB', A'B, AB. They can be combined in 16 different ways when taking any
-    combination with 1 to 4 minterms. Essentially four bits can represent 16 different
-    equations.
-
-    We add 1 letter each time we double the number of bits. Anything from 5 to 8 bits
-    would have 3 letters representing 256 possible combinations etc.
-    """
-    letters = 2
-    start = 4
-    while length > start:
-        letters = letters + 1
-        start = start * 2
-
-    return letters
-
-
-def _miniterms_(m, letters, reverse=False):
-    """
-    Generate a minterm based on the location/index of the binary digit (m) and the number of letters
-
-    Reference table:
-
-    BP -- Bit Position
-
-    BP  |  C  |  B  |  A
-    ---------------------
-    1   |  0  |  0  |  0
-    2   |  0  |  0  |  1   <-- ceiling(BP/1) % 2 != 0 [A]
-    3   |  0  |  1  |  0       <-- ceiling(BP/2) % 2 != 0 [B]
-    4   |  0  |  1  |  1
-    5   |  1  |  0  |  0           <-- ceiling(BP/4) % 2 != 0 [C]
-    6   |  1  |  0  |  1
-    7   |  1  |  1  |  0
-    8   |  1  |  1  |  1
-                                        <-- ceiling(BP/8) % 2 != 0 [D]
-
-    For example BP == 7.
-    [A] ceiling(7/1) % 2 != 0 --> True -- So we add "'" to A
-    [B] ceiling(7/2) % 2 != 0
-        4 % 2 != 0 --> False -- B is a "1" so it is unprimed
-    [C] ceiling(7/4) % 2 != 0
-        2 % 2 != 0 --> False -- C is a "1" so it is unprimed
-
-    So we get A'BC for BP 7 or C'BA if REVERSE it True
-
-    """
+def _minterms_(m, highorder_a):
     alpha = sorted(string.ascii_letters)
-    current_letter = 0
-    control = 1
     result = ''
+    if highorder_a is False:
+        m = m[::-1]
 
-    while letters > 0:
-        # first add the letter because we know we need it. If REVERSE is true the last
-        # letter will be 01010101, 2nd to last will be 00110011, etc.
-        if reverse is True:
-            result = result + alpha[letters - 1]
-        else:
-            result = result + alpha[current_letter]
-        # See reference table.
-        if math.ceil(m / control) % 2 != 0:
-            result = result + "'"
-        control = control * 2
-        current_letter = current_letter + 1
-        letters = letters - 1
+    for i, x in enumerate(m):
+        result += alpha[i]
+        if x == '0':
+            result += "'"
     return result
 # --- END OF Canonical functions ---
 
 # @coverage
-def quinmc(myitem, reverse=False, full_results=False):
+def quinmc(myitem, highorder_a=True, full_results=False):
     '''Short for Quinn-McCluskey algorithm
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
 
@@ -213,7 +155,7 @@ def quinmc(myitem, reverse=False, full_results=False):
     --integer: first passed to canonical to get the normal form
     --string or list: must contain minterms that are canonical normal form terms
 
-    reverse: Same as for canonical. Only has any affect if "myitem" is an int.
+    highorder_a: Same as for canonical. Only has any affect if "myitem" is an int.
 
     full_results: In the default mode "False" only a string containing the minimized function is
     returned. When True a list of various data structures is returned.
@@ -237,7 +179,7 @@ def quinmc(myitem, reverse=False, full_results=False):
     because second term must contain a "C".
     '''
     if isinstance(myitem, int):
-        cdnf = canonical(myitem, reverse).split(' + ')
+        cdnf = canonical(myitem, highorder_a).split(' + ')
     elif isinstance(myitem, str):
         cdnf = re.split(r"[^a-zA-Z']+", myitem)
     elif isinstance(myitem, list):
@@ -342,7 +284,7 @@ def _create_new_tuples_(working_list, orig_term_list, gen):
     result = sorted(result, key=attrgetter('ones'))
 
     return result, used_dict
-    
+
 # ---- Finding Implicants / Final Result ---- #
 # _implicants_, _required_sources_, _make_find_dict_, and _check_combinations_ do the heavy
 # lifting to find the final reduced form
@@ -358,10 +300,7 @@ def _implicants_(needed):
 
     # if _get_columns_ ends with nothing in keep_columns it means essential prime implicants
     # are all that is needed so we are done
-    if len(keep_columns) == 0:
-        finished = True
-    else:
-        finished = False
+    finished = bool(len(keep_columns) == 0)
 
     # check if single term will "cover" remaining items e.g. qmc(2077)
     if not finished:
@@ -433,7 +372,7 @@ def _get_columns_(needed, required):
 # @coverage
 def _make_find_dict_(needed, keep_columns):
     # Creates a dictionary referencing the remaining tuples that can potentially complete
-    # the minimized form. 
+    # the minimized form.
     search_tuple = namedtuple('search_tuple', 'sourceSet length')
     find_dict = {}
     for idx, item in enumerate(needed):
@@ -486,10 +425,8 @@ if __name__ == "__main__":
 #    a, b, c, d = quinmc(42589768824798729982179, False, True)
 #    print(a)
 #    a = quinmc(2077)
-    for x in range(2000,  2100):
-        print(x)
-        quinmc(x)
-        
+    print(quinmc(2077))
+
 #    a,  b,  c,  d = quinmc(2003, False, True)
 #    for i,  v in d.items():
 #        print(i, v)
