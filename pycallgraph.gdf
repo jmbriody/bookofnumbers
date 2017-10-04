@@ -1,0 +1,18 @@
+nodedef> name VARCHAR, label VARCHAR, group VARCHAR, calls INTEGER, time DOUBLE, memory_in INTEGER, memory_out INTEGER, color VARCHAR, width DOUBLE
+_create_first_generation_,_create_first_generation_,_create_first_generation_,4,0.012852191925048828,0,0,'154,140,229',2.003506608297526
+_make_find_dict_,_make_find_dict_,_make_find_dict_,3,0.005149126052856445,0,0,'183,201,229',1.463911698207646
+_check_combinations_,_check_combinations_,_check_combinations_,1,0.0011827945709228516,0,0,'216,227,229',1.1164782992771822
+_create_new_terms_,_create_new_terms_,_create_new_terms_,10,0.007559776306152344,0,0,'168,118,229',1.6489230651754045
+_minimize_,_minimize_,_minimize_,4,0.033890724182128906,0,0,'229,45,156',3.0
+_get_columns_,_get_columns_,_get_columns_,4,0.001332998275756836,0,0,'192,211,229',1.1307960826238768
+__main__,__main__,__main__,1,0,0,0,'221,228,229',1.0
+_merge_terms_,_merge_terms_,_merge_terms_,10,0.0082855224609375,0,0,'171,115,229',1.7014283804505133
+_implicants_,_implicants_,_implicants_,4,0.010430097579956055,0,0,'153,151,229',1.8489829109041522
+edgedef> node1 VARCHAR, node2 VARCHAR, label VARCHAR, labelvisible VARCHAR, directed BOOLEAN, color VARCHAR, width DOUBLE
+_merge_terms_,_create_new_terms_,10,true,true,'130,92,178',2.0
+_minimize_,_create_first_generation_,4,true,true,'120,109,178',0.8
+_minimize_,_implicants_,4,true,true,'119,118,178',0.8
+_minimize_,_merge_terms_,10,true,true,'133,89,178',2.0
+_implicants_,_make_find_dict_,3,true,true,'142,156,178',0.6
+_implicants_,_check_combinations_,1,true,true,'168,176,178',0.2
+_implicants_,_get_columns_,4,true,true,'150,164,178',0.8

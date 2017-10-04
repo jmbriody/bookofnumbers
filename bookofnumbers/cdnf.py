@@ -42,7 +42,7 @@ caononical(x, highorder_a=False, includef=False):
 >>> canonical(248, True, True)
 "f(248) = ABC + ABC' + AB'C + AB'C' + A'BC"
 
-quinmc(myitem, highorder_a=True, full_results=False):
+quinemc(myitem, highorder_a=True, full_results=False):
     Short for Quinn-McCluskey algorithm:
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
 
@@ -61,25 +61,25 @@ quinmc(myitem, highorder_a=True, full_results=False):
     --possibles: A dictionary of possible minterms when the essential prime implicants do not cover
     the whole canonical form. Essentially items generated using Petrick's Method. May be empty.
 
->>> quinmc(248)
+>>> quinemc(248)
 'BC + A'
->>> quinmc(248, False)
+>>> quinemc(248, False)
 'AB + C'
->>> quinmc("ABC + A'BC + AB'C + A'B'C + ABC'")
+>>> quinemc("ABC + A'BC + AB'C + A'B'C + ABC'")
 'AB + C'
->>> quinmc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
+>>> quinemc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
 'AB + C'
->>> result, final_result, term_list, possibles = quinmc(248, False, True)
+>>> result, final_result, term_list, possibles = quinemc(248, False, True)
 
 """
-from __future__ import division # needed for python2
+from __future__ import division  # needed for python2
 import re
 import math
 import itertools
 import string
 from collections import namedtuple, defaultdict
 from operator import attrgetter
-# from profilehooks import coverage, profile
+from profilehooks import coverage, profile
 
 # Term is a namedtuple used by the Quin-McCluskey reduction portion of the code.
 # A list of Terms is used for the minimize process and another list is used for
@@ -96,10 +96,11 @@ from operator import attrgetter
 #
 # Code relies on doing set comparisons of characters as opposed to using 1's and 0's
 # and position holders (e.g. AB'D vs. 10-1). For very large reductions (e.g.
-# quinmc(4222345678921334)) the number of permutations and comparisons grows pretty
+# quinemc(4222345678921334)) the number of permutations and comparisons grows pretty
 # large and can be slow.
-Term = namedtuple('Term', 'termset used ones source generation')
+Term = namedtuple('Term', 'termset used ones source generation final')
 
+@coverage
 def canonical(x, highorder_a=True, includef=False):
     """
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
@@ -131,6 +132,7 @@ http://www.plantation-productions.com/Webster/www.artofasm.com/Linux/PDFs/Digita
         result = "f(" + str(x) + ") = " + result
     return result
 
+@coverage
 def _minterms_(m, highorder_a):
     alpha = sorted(string.ascii_letters)
     result = ''
@@ -142,10 +144,12 @@ def _minterms_(m, highorder_a):
         if x == '0':
             result += "'"
     return result
+
+
 # --- END OF Canonical functions ---
 
-# @coverage
-def quinmc(myitem, highorder_a=True, full_results=False):
+@coverage
+def quinemc(myitem, highorder_a=True, full_results=False):
     '''Short for Quinn-McCluskey algorithm
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
 
@@ -165,17 +169,17 @@ def quinmc(myitem, highorder_a=True, full_results=False):
     --possibles: A dictionary of possible minterms when the essential prime implicants do not cover
     the whole canonical form. Essentially items generated using Petrick's Method. May be empty.
 
-    >>> quinmc(248)
+    >>> quinemc(248)
     'AB + C'
-    >>> quinmc(248, True)
+    >>> quinemc(248, True)
     'BC + A'
-    >>> quinmc("ABC + A'BC + AB'C + A'B'C + ABC'")
+    >>> quinemc("ABC + A'BC + AB'C + A'B'C + ABC'")
     'AB + C'
-    >>> quinmc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
+    >>> quinemc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
     'AB + C'
-    >>> result, final_result, term_list, possibles = quinmc(248, False, True)
+    >>> result, final_result, term_list, possibles = quinemc(248, False, True)
 
-    Invalid input will return a ValueError (e.g. quinmc(["A'BC", "AB"]) is invalid
+    Invalid input will return a ValueError (e.g. quinemc(["A'BC", "AB"]) is invalid
     because second term must contain a "C".
     '''
     if isinstance(myitem, int):
@@ -192,80 +196,87 @@ def quinmc(myitem, highorder_a=True, full_results=False):
         if test_string != "".join(sorted(re.sub("'", '', item))):
             return ValueError("Term: ", item, " doesn't match valid test ", test_string)
 
-
     if full_results:
-        return minimize(cdnf)
+        return _minimize_(cdnf)
     else:
-        return minimize(cdnf)[0]
+        return _minimize_(cdnf)[0]
 
-# @coverage
-def minimize(cdnf):
+
+@coverage
+def _minimize_(cdnf):
     """
     Basic driver for performing the over all minimization. Most of the "heavy" work
     is done in _implicants_()
 
     """
-    # Step 1: take terms from the caononical form and putting them into generation one
-    # of our term_list
-    term_list = _convert_to_tuples_(cdnf, 1)
     done = False
     current_generation = 1
+    # Step 1: take terms from the caononical form and putting them into generation one
+    # of our term_list
+    term_list = _create_first_generation_(cdnf)
 
     # Step 2: merge terms of each generation to create next generation until no more merges
     # are possible (_merge_terms_ and _create_new_tuples_)
     while not done:
-        term_list, done = _merge_terms_(term_list, current_generation)
+        done = _merge_terms_(term_list, current_generation)
         current_generation += 1
 
     # Step 3: Generate our final result from all terms in term_list that have not been used in
     # a merge
-    final_result, possibles = _implicants_([x for x in term_list if x.used is False])
+    possibles = _implicants_(term_list)
 
-    result = ["".join(sorted(tempItem.termset)) for tempItem in final_result]
+    result = ["".join(sorted(tempItem.termset)) for tempItem
+              in term_list
+              if tempItem.final is not None]
     result = " + ".join(result)
 
-    # Handle special cases-- quinmc(0), quinmc(15), quinmc(255),
-    # quinmc("AB + A'B + AB' + A'B'"), etc.
+    # Handle special cases-- quinemc(0), quinemc(15), quinemc(255),
+    # quinemc("AB + A'B + AB' + A'B'"), etc.
     if len(term_list) == 1 and len(term_list[0].termset) == 0:
         result = "0"
     if result == "":
         result = "1"
 
-    return result, final_result, term_list, possibles
+    return result, term_list, possibles
 
-# @coverage
-def _convert_to_tuples_(terms, gen, source=None):
+
+@coverage
+def _create_first_generation_(terms):
     my_letters = set(sorted(string.ascii_letters))
-    temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in terms] # Convert to list of sets
-    temp_list = [Term(x, False, len(x.intersection(my_letters)), source, gen) for x in temp_terms]
+    temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in terms]  # Convert to list of sets
+
+    # Remove duplicate terms if called with something like quinemc("ABCD + CDBA + ABC'D + DC'AB")
+    temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
+
+    temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None)
+                 for x in temp_terms]
     temp_list = sorted(temp_list, key=attrgetter('ones'))
     for idx, item in enumerate(temp_list):
         temp_list[idx] = item._replace(source=[idx])
     return temp_list
 
-# @coverage
-def _merge_terms_(orig_term_list, gen):
-    working_list = [x for x in orig_term_list if x.generation == gen]
-    done = False
-    new_tuples, used_dict = _create_new_tuples_(working_list, orig_term_list, gen)
 
-    for key in used_dict.keys():
-        current = orig_term_list[key]
-        orig_term_list[key] = Term(current.termset, True, current.ones,
-                                   current.source, current.generation)
-    if len(new_tuples) > 0:
-        orig_term_list.extend(new_tuples)
+@coverage
+def _merge_terms_(term_list, gen):
+    done = False
+    new_terms = _create_new_terms_(term_list, gen)
+
+    if len(new_terms) > 0:
+        term_list.extend(new_terms)
     else:
         done = True
 
-    return orig_term_list, done
+    return done
 
-# @coverage
-def _create_new_tuples_(working_list, orig_term_list, gen):
-    used_dict = {} # a dictionary for used items
-    sources = []    # avoid duplicate merges
+
+@coverage
+def _create_new_terms_(orig_term_list, gen):
+    used_dict = {}  # a dictionary for used items
+    sources = []  # avoid duplicate merges
     result = []
-    my_letters = set(string.ascii_letters)
+    # my_letters = set(string.ascii_letters)
+    working_list = [x for x in orig_term_list if x.generation == gen]
+
     for x in working_list:
         for y in working_list:
             if y.ones == (x.ones + 1):
@@ -279,24 +290,36 @@ def _create_new_tuples_(working_list, orig_term_list, gen):
                     source = sorted(y.source + x.source)
                     if source not in sources:
                         sources.append(source)
-                        result.append(Term(new_term, False, len(new_term.intersection(my_letters)),
-                                           source, (gen + 1)))
+                        result.append(Term(new_term, False,
+                                           len(new_term.intersection(set(string.ascii_letters))),
+                                           source, (gen + 1), None))
     result = sorted(result, key=attrgetter('ones'))
 
-    return result, used_dict
+    for key in used_dict.keys():
+        current = orig_term_list[key]
+        orig_term_list[key] = Term(current.termset, True, current.ones,
+                                   current.source, current.generation, None)
+
+    return result
+
 
 # ---- Finding Implicants / Final Result ---- #
 # _implicants_, _required_sources_, _make_find_dict_, and _check_combinations_ do the heavy
 # lifting to find the final reduced form
-# @coverage
-def _implicants_(needed):
+@coverage
+def _implicants_(term_list):
     '''
-    Finds terms that will covered unused cases if the essential prime implicants are not
+    Finds terms that will cover unused cases if the essential prime implicants are not
     enough.
     '''
     possible_terms = defaultdict(list)
-    required = _required_sources_(needed)
-    needed, final_list, keep_columns = _get_columns_(needed, required)
+    list_of_sources = []
+
+    for x in [zed for zed in term_list if zed.used is False]:
+        list_of_sources += list(itertools.chain(x.source))
+
+    required = [x for x in list_of_sources if list_of_sources.count(x) == 1]
+    keep_columns = _get_columns_(term_list, required)
 
     # if _get_columns_ ends with nothing in keep_columns it means essential prime implicants
     # are all that is needed so we are done
@@ -304,97 +327,74 @@ def _implicants_(needed):
 
     # check if single term will "cover" remaining items e.g. qmc(2077)
     if not finished:
-        find_dict = _make_find_dict_(needed, keep_columns)
+        find_dict = _make_find_dict_(term_list, keep_columns)
         for idx, val in find_dict.items():
             if set(keep_columns) == val.sourceSet:
-                final_list.append(needed[idx])
+                term_list[idx] = term_list[idx]._replace(final="Added")
                 finished = True
                 break
 
     # if a single term doesn't cover the remaining 1st gen items start looking
     # for combinations of Terms that will fit the bill.
     if not finished:
-        final_list, possible_terms = _check_combinations_(find_dict,
-                                                          final_list, keep_columns, needed)
+        possible_terms = _check_combinations_(find_dict, term_list, keep_columns)
 
-    return final_list, possible_terms
+    return possible_terms
 
-# @coverage
-def _required_sources_(needed):
-    """
-    input: needed -- a list of "Term" namedtuples where used==False
-    output: a list of integers for "Term" items from generation 1 that
-        appear only once
 
-    In a nutshell this finds reduced terms that are essential prime implicants--items
-    that have an ancestor that has been used only once.
-    """
-    list_of_sources = []
-
-    for x in needed:
-        list_of_sources += list(itertools.chain(x.source))
-
-    required = [x for x in list_of_sources if list_of_sources.count(x) == 1]
-
-    return required
-
-# @coverage
-def _get_columns_(needed, required):
+@coverage
+def _get_columns_(term_list, required):
     """
     needed -- list of "Term" tuples that have used==False
     required -- integers for terms that are essential prime implicants . . .
         each required int will appear in the source list for only 1 item in needed
     """
-    final_l = []
     ignore = []
     keep = []
 
-    for x in needed:
+    for j, x in [(i, k) for i, k in enumerate(term_list) if k.used is False]:
         # Find Terms in "needed" that exist in required, add them to the final result,
         # and add that Term's sources to the "columns" we can now ignore (already covered
         # terms)
-        if len((set(required) & set(x.source))) == 1:
-            final_l.append(x)
-            ignore += set(itertools.chain(x.source))
+        if len((set(required) & set(x.source))) >= 1:
+            term_list[j] = x._replace(final="Required")
+            ignore += itertools.chain(x.source)
         # Otherwise add the sources to our list of "columns" we need to keep
         else:
-            keep += set(itertools.chain(x.source))
+            keep += itertools.chain(x.source)
 
     # create a list of the remaining 1st gen terms that we still need to find minterms for
     keep = list(set(keep) - set(ignore))
 
-    # Clean up the "needed" list by removing the terms we've used as essential prime implicants
-    for x in final_l:
-        needed.remove(x)
+    return keep
 
-    return needed, final_l, keep
 
-# @coverage
-def _make_find_dict_(needed, keep_columns):
+@coverage
+def _make_find_dict_(term_list, keep_columns):
     # Creates a dictionary referencing the remaining tuples that can potentially complete
     # the minimized form.
     search_tuple = namedtuple('search_tuple', 'sourceSet length')
     find_dict = {}
-    for idx, item in enumerate(needed):
+    for idx, item in [(i, k) for i, k in enumerate(term_list)
+                      if k.used is False and k.final is None]:
         temp_source = set(keep_columns) & set(item.source)
 
         if len(temp_source) > 0:
             temp_tuple = search_tuple(temp_source, len(item.termset))
             find_dict[idx] = temp_tuple
+
     return find_dict
 
-# @coverage
-def _check_combinations_(find_dict, final_list, keep_columns, needed):
-    # key_list = [x for x in find_dict.keys()]
+
+@coverage
+def _check_combinations_(find_dict, term_list, keep_columns):
     match_idx = []
     matches = []
     possible_terms = defaultdict(list)
-    done = False
+    indexes = []
 
     for x in range(2, (len(find_dict) + 1)):
         for items in itertools.combinations(find_dict.keys(), x):
-            if done:
-                break
             combined_sources = set()
             temp_count = 0
             for idx in items:
@@ -402,32 +402,37 @@ def _check_combinations_(find_dict, final_list, keep_columns, needed):
                 temp_count += find_dict[idx].length
             if set(keep_columns) == combined_sources:
                 matches.append(items)
-                match_idx.append(temp_count)        # find result with fewest literals
-        # Found at least 1 set of terms that will work
-        if len(matches) > 0:
-            min_index = match_idx.index(min(match_idx))
-            for idx, value in enumerate(matches):
-                for i in value:
-                    if idx == min_index:
-                        final_list.append(needed[i])
-                    # also create a list of all options that will fit the bill
-                    possible_terms[idx].append(needed[i])
-                    done = True
-            break
-    return final_list, possible_terms
+                match_idx.append(temp_count)
 
+    if len(matches) > 0:
+        indexes = [matches[i] for i, v in enumerate(match_idx) if v == min(match_idx)]
+        for idx, value in enumerate(indexes):
+            for i in value:
+                if idx == 0:
+                    term_list[i] = term_list[i]._replace(final="Added")
+                possible_terms[idx].append(term_list[i])
 
-
+    return possible_terms
 
 
 if __name__ == "__main__":
-#    print("here")
-#    a, b, c, d = quinmc(42589768824798729982179, False, True)
-#    print(a)
-#    a = quinmc(2077)
-    print(quinmc(2077))
+    #    print("here")
+    #    a, b, c, d = quinemc(42589768824798729982179, False, True)
+    #    print(a)
+    #    a = quinemc(2077)
+    print("2003", quinemc(2003))
+    print("2077", quinemc(2077))
+    print("2078", quinemc(2078))
+    print("2046", quinemc(2046))
+    canonical(2046)
 
-#    a,  b,  c,  d = quinmc(2003, False, True)
+# 65024
+# 15872
+# 48640
+# **Situation 4 -- 38400**
+
+
+# a,  b,  c,  d = quinemc(2003, False, True)
 #    for i,  v in d.items():
 #        print(i, v)
 #    mj = canonical(14)
@@ -436,7 +441,7 @@ if __name__ == "__main__":
 #    mi = canonical(22256)
 #    print(mj, mk, mi)
 
-#    a, b, c, d = quinmc(2078)
+#    a, b, c, d = quinemc(2078)
 #    print(a)
 #    for x in b:
 #        print(x)

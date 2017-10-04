@@ -1,1 +1,1 @@
-from .cdnf import quinmc, canonical
+from .cdnf import quinemc, canonical
