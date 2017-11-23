@@ -1,7 +1,8 @@
 from collections import defaultdict
 import math
 import asyncio
-from profilehooks import coverage
+# from profilehooks import coverage
+import timeit
 
 SIEVE_LIMIT = 1000000
 
@@ -25,9 +26,6 @@ SIEVE_LIMIT = 1000000
 178571428571429
 10000000000000024
 
-
-carly -- ultraserve -- tomorrow
-    active campaign -- email marketing platform, site reliability
 '''
 # Start with basic sieve variant. You can find faster and more efficient ones at places
 # like stackoverflow--but I went with simple and straightforward. Ultimate goal
@@ -61,7 +59,6 @@ def primes_sieve(limit):
 # Larger lists will of course take more memory.
 # For most cases a list upto the sqrt of the largest prime factor should be good
 PRIME_LIST = primes_sieve(SIEVE_LIMIT)
-print(len(PRIME_LIST))
 NEW_PRIMES = defaultdict(int)
 
 def reset_prime_list(newlength):
@@ -77,23 +74,22 @@ def _is_prime(k):
             return True
         elif k % j == 0:
             return False
-    NEW_PRIMES[k] += 1
 
 
 # Probably need to break this up into function calls.
 #
-@coverage
+# @coverage
 def prime_factors(n):
     original = n
     end = int((n**0.5) + 1)
     result = []
 
-    if int(n) in PRIME_LIST or int(n) in NEW_PRIMES:
-        result.append((n, 1, "Q"))
+    if int(n) in PRIME_LIST or int(n) in NEW_PRIMES: # 97
+        result.append((n, 1))
         n = 1
-        return result
 
-    for x in PRIME_LIST:
+
+    for x in PRIME_LIST: # 96
         if x > end or n <= 1:
             break
         else:
@@ -102,24 +98,24 @@ def prime_factors(n):
                 count += 1
                 n /= x
             if count > 0:
-                result.append((x, count, "A"))
+                result.append((x, count))
+
+    if n <= 1:
+        return result
 
     # Check if remainder from above is prime
-    if n in PRIME_LIST:
+    if n in PRIME_LIST: # 100023
         result.append((int(n), 1, "PL"))
         n /= n
 
-    if n > 1 and _is_prime(n):
+    if n > 1 and _is_prime(n): # 100020
         NEW_PRIMES[n] += 100
         result.append((int(n), 1, "B"))
         n = 1
 
-    if n > 1 and n not in PRIME_LIST and n not in NEW_PRIMES: # and n > end:
+    if n > 1: # and n not in PRIME_LIST and n not in NEW_PRIMES: # and n > end:
         current = PRIME_LIST[-1] + 2
         while n > 1 and current < (n**0.5 + 1):
-            if n in NEW_PRIMES:
-                result.append((int(n), 1, "G"))
-                break
             count = 0
 
             while n % current == 0:
@@ -127,7 +123,7 @@ def prime_factors(n):
                 n //= current
             if count > 0:
                 print("D", current, count, n)
-                # NEW_PRIMES[current] += 1
+                NEW_PRIMES[current] += 1
                 result.append((current, count, "D"))
 
             current += 2
@@ -143,7 +139,7 @@ def prime_factors(n):
 
     return result
 
-@coverage
+# @coverage
 def factors(n):
     primef = prime_factors(n)
     tempresult = [[1]]
@@ -195,6 +191,28 @@ def fibonacci(n):
     fresult = ((t**n) - ((-1/t)**n)) / s5
     return math.ceil(fresult)
 
+def factors2(n):
+    return set(x for tup in ([i, n//i] 
+                for i in range(1, int(n**0.5)+1) if n % i == 0) for x in tup)
+
 if __name__ == "__main__":
-    print(factors(72))
-#    print(prime_factors(72))
+    print(len(PRIME_LIST))
+#    startt = timeit.default_timer()
+#    for x in range(10000000, 10004000):
+#        factors(x)
+#    print(timeit.default_timer() - startt)
+
+#    startt = timeit.default_timer()
+#    for x in range(10000000, 10004000):
+#        factors2(x)
+#    print(timeit.default_timer() - startt)
+
+    
+#    reset_prime_list(1000)
+#    print(len(PRIME_LIST))
+#    prime_factors(100023)
+#    for x in range(100000010, 100000030):
+#        print(x, prime_factors(x))
+#    print(NEW_PRIMES)
+#    print(prime_factors(100000027))
+#    print(prime_factors(66413))

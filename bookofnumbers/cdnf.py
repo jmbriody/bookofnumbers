@@ -29,8 +29,8 @@ When highorder_a is False A would be the low order bit for 248.
 Two primary user functions are:
 caononical(x, highorder_a=False, includef=False):
     Simplest call is canonical(248) which will return the canonical boolean algebraic expression
-    for "248". In the default setup A is the Low Order bit (highorder_a=False)--i.e. 0101.
-    When highorder_a is True A will be the High Order bit--i.e. 0000111100001111. includef
+    for "248". In the default setup A is the High Order bit (highorder_a=True)--i.e. 00001111.
+    When highorder_a is False A will be the Low Order bit--i.e. 01010101. includef
     determines whether "F(248) = " should be prepended to the result.
 
 
@@ -43,23 +43,24 @@ caononical(x, highorder_a=False, includef=False):
 "f(248) = ABC + ABC' + AB'C + AB'C' + A'BC"
 
 quinemc(myitem, highorder_a=True, full_results=False):
-    Short for Quinn-McCluskey algorithm:
+    Short for Quinne-McCluskey algorithm:
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
 
     myitem: can be an integer, string representing a canonical boolean expression, or a list
     of minterms for a canonical expression.
     --integer: first passed to canonical to get the normal form
-    --string or list: must contain minterms that are canonical normal form terms
+    --string or list: must contain minterms that are canonical normal form terms. Terms can be
+    composed of any alpha characters (plus (')).
 
     highorder_a: Same as for canonical. Only has any affect if "myitem" is an int.
 
     full_results: In the default mode "False" only a string containing the minimized function is
     returned. When True a list of various data structures is returned.
     --result: Minimized expression
-    --final_result: List of Named Tuples "termset" containing terms of the Minimized expression
     --term_list: List of Named Tuples "termset" of all terms used in the reduction/minimize process
     --possibles: A dictionary of possible minterms when the essential prime implicants do not cover
-    the whole canonical form. Essentially items generated using Petrick's Method. May be empty.
+    the whole canonical form. Essentially items generated using Petrick's Method that would create a
+    smaller form--items may be "longer" than the resulting minimized form.
 
 >>> quinemc(248)
 'BC + A'
@@ -69,7 +70,9 @@ quinemc(myitem, highorder_a=True, full_results=False):
 'AB + C'
 >>> quinemc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
 'AB + C'
->>> result, final_result, term_list, possibles = quinemc(248, False, True)
+>>> quinemc("rts + r'ts + rt's + r't's + rts'")
+'rt + s'
+>>> result, term_list, possibles = quinemc(248, False, True)
 
 """
 from __future__ import division  # needed for python2
@@ -90,8 +93,11 @@ from profilehooks import coverage, profile
 # --ones: Number of un-primed characters. Used for the reduction process.
 # --source: list of indexes of terms used to derive the current term
 # --generation: which generation the term belongs to
+# --final: (None|Required|Added). "None"--default setting; term isn't used in reduced
+#       form. "Required"--terms that are required for the reduced form. "Added"--
+#       terms that complete the reduced form using Petrick's method.
 #
-# For minimize/reduction on items in the latest generation are compared. With in a
+# For minimize/reduction items in the latest generation are compared. With in a
 # generation only terms where "ones" differs by 1 can be merged/minimized.
 #
 # Code relies on doing set comparisons of characters as opposed to using 1's and 0's
@@ -102,27 +108,34 @@ Term = namedtuple('Term', 'termset used ones source generation final')
 
 @coverage
 def canonical(x, highorder_a=True, includef=False):
-    """
+    '''
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
 
     Arguments:
-    x: integer to convert to a canonical boolean expression. based on Section 3.4 of
-    "Digital Design" from Randall Hyde's "The Art of Assembly Language Programming"
-http://www.plantation-productions.com/Webster/www.artofasm.com/Linux/PDFs/DigitalDesign.pdf
+    x (integer): number to convert to a canonical boolean expression.
 
-    highorder_a: When "False" (default) A is the low order bit. When True A is the high order
-    bit.
+    highorder_a (boolean): When "True" (default) A is the high order bit. When False A is
+    the low order bit.
 
-    includef: When True will append "F(x) = " before the result string
+    includef (boolean): When True will append "F(x) = " before the result string
 
-    """
+    '''
+    try:
+        x = int(x)
+    except ValueError:
+        print("canonical(x) requires an integer.")
+
     binary = format(x, 'b')
     binary = binary[::-1]
+    # No. of letters needed is equal to the length of the binary number representing
+    # the length of our number. (E.g. len('11111000') == (8 - 1) == 0b111. len('111') = 3,
+    # so we will need A, B, C.
     letters = len(format(len(binary) - 1, 'b'))
     if letters == 1:
         letters = 2
-    # highorder_a the binary and create a list of all the positions with a "1".
 
+    # Funky formatter: essentially `format('10', '05b')` to get 00010--i.e. a binary equal to
+    # the length of letters for each bit position that equals 1 in our input
     indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
 
     miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
@@ -139,6 +152,7 @@ def _minterms_(m, highorder_a):
     if highorder_a is False:
         m = m[::-1]
 
+    # convert 010 to A'BC'
     for i, x in enumerate(m):
         result += alpha[i]
         if x == '0':
@@ -157,14 +171,14 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     myitem: can be an integer, string representing a canonical boolean expression, or a list
     of minterms for a canonical expression.
     --integer: first passed to canonical to get the normal form
-    --string or list: must contain minterms that are canonical normal form terms
+    --string or list: must contain minterms that are canonical normal form terms. Can be any
+    group of "consistent" letters e.g. "rts + rt's + r't's" is valid.
 
     highorder_a: Same as for canonical. Only has any affect if "myitem" is an int.
 
     full_results: In the default mode "False" only a string containing the minimized function is
     returned. When True a list of various data structures is returned.
     --result: Minimized expression
-    --final_result: List of Named Tuples "termset" containing terms of the Minimized expression
     --term_list: List of Named Tuples "termset" of all terms used in the reduction/minimize process
     --possibles: A dictionary of possible minterms when the essential prime implicants do not cover
     the whole canonical form. Essentially items generated using Petrick's Method. May be empty.
@@ -177,7 +191,7 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     'AB + C'
     >>> quinemc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
     'AB + C'
-    >>> result, final_result, term_list, possibles = quinemc(248, False, True)
+    >>> result, term_list, possibles = quinemc(248, False, True)
 
     Invalid input will return a ValueError (e.g. quinemc(["A'BC", "AB"]) is invalid
     because second term must contain a "C".
@@ -274,7 +288,6 @@ def _create_new_terms_(orig_term_list, gen):
     used_dict = {}  # a dictionary for used items
     sources = []  # avoid duplicate merges
     result = []
-    # my_letters = set(string.ascii_letters)
     working_list = [x for x in orig_term_list if x.generation == gen]
 
     for x in working_list:
@@ -283,9 +296,8 @@ def _create_new_terms_(orig_term_list, gen):
                 sym_set = y.termset.symmetric_difference(x.termset)
 
                 if len(sym_set) == 2 and list(sym_set)[0][0] == list(sym_set)[1][0]:
-                    x_index, y_index = orig_term_list.index(x), orig_term_list.index(y)
-                    used_dict[x_index] = True
-                    used_dict[y_index] = True
+                    used_dict[orig_term_list.index(x)] = True
+                    used_dict[orig_term_list.index(y)] = True
                     new_term = y.termset.intersection(x.termset)
                     source = sorted(y.source + x.source)
                     if source not in sources:
@@ -295,6 +307,7 @@ def _create_new_terms_(orig_term_list, gen):
                                            source, (gen + 1), None))
     result = sorted(result, key=attrgetter('ones'))
 
+    # set used terms as used in orig_term_list
     for key in used_dict.keys():
         current = orig_term_list[key]
         orig_term_list[key] = Term(current.termset, True, current.ones,
@@ -345,7 +358,7 @@ def _implicants_(term_list):
 @coverage
 def _get_columns_(term_list, required):
     """
-    needed -- list of "Term" tuples that have used==False
+    term_list -- full list of terms
     required -- integers for terms that are essential prime implicants . . .
         each required int will appear in the source list for only 1 item in needed
     """
@@ -414,6 +427,15 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 
     return possible_terms
 
+""" CONVERT BACK
+--make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
+--find greatest letter (D)
+--for each term above create set of missing term pairs [["C", "C'"], ["D", "D'"]] --> missing_list
+-- create all combinations
+    missing_combos = list(itertools.product(*missing_list)
+-- merge them
+    final.append([set(term) | set(missing) for missing in missing_combos])
+"""
 
 if __name__ == "__main__":
     #    print("here")
@@ -424,6 +446,8 @@ if __name__ == "__main__":
     print("2077", quinemc(2077))
     print("2078", quinemc(2078))
     print("2046", quinemc(2046))
+    print("255", quinemc(255))
+    print("0", quinemc(0))
     canonical(2046)
 
 # 65024
