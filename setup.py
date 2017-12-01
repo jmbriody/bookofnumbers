@@ -7,7 +7,10 @@ setup(
     author_email='jackbriody@gmail.com',
     url='https://jmbriody.github.io',
     version="0.1.0",
-    packages=find_packages(),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     include_package_data=False,
-    install_requires=["pytest"],
+    # install_requires=["pytest"],
+    extras_require={
+        'test': ['pytest']
+    },
 )

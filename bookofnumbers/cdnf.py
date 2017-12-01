@@ -82,7 +82,7 @@ import itertools
 import string
 from collections import namedtuple, defaultdict
 from operator import attrgetter
-from profilehooks import coverage, profile
+#from profilehooks import coverage, profile
 
 # Term is a namedtuple used by the Quin-McCluskey reduction portion of the code.
 # A list of Terms is used for the minimize process and another list is used for
@@ -106,7 +106,7 @@ from profilehooks import coverage, profile
 # large and can be slow.
 Term = namedtuple('Term', 'termset used ones source generation final')
 
-@coverage
+# @coverage
 def canonical(x, highorder_a=True, includef=False):
     '''
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
@@ -145,7 +145,7 @@ def canonical(x, highorder_a=True, includef=False):
         result = "f(" + str(x) + ") = " + result
     return result
 
-@coverage
+# @coverage
 def _minterms_(m, highorder_a):
     alpha = sorted(string.ascii_letters)
     result = ''
@@ -162,7 +162,7 @@ def _minterms_(m, highorder_a):
 
 # --- END OF Canonical functions ---
 
-@coverage
+# @coverage
 def quinemc(myitem, highorder_a=True, full_results=False):
     '''Short for Quinn-McCluskey algorithm
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
@@ -216,7 +216,7 @@ def quinemc(myitem, highorder_a=True, full_results=False):
         return _minimize_(cdnf)[0]
 
 
-@coverage
+# @coverage
 def _minimize_(cdnf):
     """
     Basic driver for performing the over all minimization. Most of the "heavy" work
@@ -254,7 +254,7 @@ def _minimize_(cdnf):
     return result, term_list, possibles
 
 
-@coverage
+# @coverage
 def _create_first_generation_(terms):
     my_letters = set(sorted(string.ascii_letters))
     temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in terms]  # Convert to list of sets
@@ -270,7 +270,7 @@ def _create_first_generation_(terms):
     return temp_list
 
 
-@coverage
+# @coverage
 def _merge_terms_(term_list, gen):
     done = False
     new_terms = _create_new_terms_(term_list, gen)
@@ -283,7 +283,7 @@ def _merge_terms_(term_list, gen):
     return done
 
 
-@coverage
+# @coverage
 def _create_new_terms_(orig_term_list, gen):
     used_dict = {}  # a dictionary for used items
     sources = []  # avoid duplicate merges
@@ -319,7 +319,7 @@ def _create_new_terms_(orig_term_list, gen):
 # ---- Finding Implicants / Final Result ---- #
 # _implicants_, _required_sources_, _make_find_dict_, and _check_combinations_ do the heavy
 # lifting to find the final reduced form
-@coverage
+# @coverage
 def _implicants_(term_list):
     '''
     Finds terms that will cover unused cases if the essential prime implicants are not
@@ -355,7 +355,7 @@ def _implicants_(term_list):
     return possible_terms
 
 
-@coverage
+# @coverage
 def _get_columns_(term_list, required):
     """
     term_list -- full list of terms
@@ -382,7 +382,7 @@ def _get_columns_(term_list, required):
     return keep
 
 
-@coverage
+# @coverage
 def _make_find_dict_(term_list, keep_columns):
     # Creates a dictionary referencing the remaining tuples that can potentially complete
     # the minimized form.
@@ -399,7 +399,7 @@ def _make_find_dict_(term_list, keep_columns):
     return find_dict
 
 
-@coverage
+# @coverage
 def _check_combinations_(find_dict, term_list, keep_columns):
     match_idx = []
     matches = []
