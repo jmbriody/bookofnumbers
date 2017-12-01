@@ -6,7 +6,7 @@ from bookofnumbers import *
 def test_quin():
     # a = qmc(2078)
     Term = namedtuple('Term', 'termset used ones source generation final')
-    assert quinemc(2078) == "A'BC'D' + A'B'C + A'B'D + AB'CD"
+    assert quinemc(2078) == "A'BC'D' + A'B'C + A'B'D + B'CD"
     assert quinemc(2077) == "A'C'D' + A'B'D' + B'CD"
     assert quinemc(12309, True) == "A'C'D' + A'B'D' + ABC'"
     assert quinemc(2003) == "A'C'D' + AB'D' + A'BC + B'C'"
