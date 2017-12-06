@@ -435,6 +435,15 @@ def _check_combinations_(find_dict, term_list, keep_columns):
     missing_combos = list(itertools.product(*missing_list)
 -- merge them
     final.append([set(term) | set(missing) for missing in missing_combos])
+
+-----------
+final = []
+terms = [('A', "B'"), ("C'", "D'")]
+create dictionary for all letters A --> ["A", "A'"]; B --> ["B", "B'"]
+for t in terms:
+    missing_list --> all items in dictionary not represent in t (e.g. [["C", "C'"], ["D", "D'"]])
+    missing_combos = list(itertools.product(*missing_list)
+    final.append([set(term) | set(missing) for missing in missing_combos])
 """
 
 if __name__ == "__main__":
