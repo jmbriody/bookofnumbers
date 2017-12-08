@@ -445,6 +445,37 @@ for t in terms:
     missing_combos = list(itertools.product(*missing_list)
     final.append([set(term) | set(missing) for missing in missing_combos])
 """
+def to_cdnf(min_form):
+    if isinstance(min_form, str):
+        min_form = list(re.split(r"[^a-zA-Z']+", min_form))
+    elif isinstance(min_form, list):
+        pass
+    else:
+        return ValueError(min_form, "Not valid input")
+
+    print("Orig: ", min_form)
+
+    temp_letters = sorted(set("".join(min_form)))
+    temp_letters.remove("'")
+    letters = [chr(i) for i in range(ord(temp_letters[0]), ord(temp_letters[-1])+ 1)]
+
+    print(letters)
+                   
+    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form]
+    final = []
+    print("New: ", min_form, letters)
+    for x in min_form:
+        missing_letters = set("".join(x))
+        missing_letters.discard("'")
+        missing_letters = list(set(letters) - set(missing_letters))
+        missing_letters = [[x, x + "'"] for x in missing_letters]
+        missing_combos = list(itertools.product(*missing_letters))
+        final.append([set(x) | set(missing) for missing in missing_combos])
+
+    for x in final:
+        print(x)
+    print(letters, " : ", min_form)
+
 
 if __name__ == "__main__":
     #    print("here")
