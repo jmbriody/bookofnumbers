@@ -77,7 +77,6 @@ quinemc(myitem, highorder_a=True, full_results=False):
 """
 from __future__ import division  # needed for python2
 import re
-import math
 import itertools
 import string
 from collections import namedtuple, defaultdict
@@ -139,6 +138,8 @@ def canonical(x, highorder_a=True, includef=False):
     indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
 
     miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
+    miniterms = sorted(miniterms, reverse=True)
+
     result = ' + '.join(miniterms)
 
     if includef is True:
@@ -242,6 +243,7 @@ def _minimize_(cdnf):
     result = ["".join(sorted(tempItem.termset)) for tempItem
               in term_list
               if tempItem.final is not None]
+    result = sorted(result, reverse=True)
     result = " + ".join(result)
 
     # Handle special cases-- quinemc(0), quinemc(15), quinemc(255),
@@ -427,25 +429,26 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 
     return possible_terms
 
-""" CONVERT BACK
---make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
---find greatest letter (D)
---for each term above create set of missing term pairs [["C", "C'"], ["D", "D'"]] --> missing_list
--- create all combinations
-    missing_combos = list(itertools.product(*missing_list)
--- merge them
-    final.append([set(term) | set(missing) for missing in missing_combos])
-
------------
-final = []
-terms = [('A', "B'"), ("C'", "D'")]
-create dictionary for all letters A --> ["A", "A'"]; B --> ["B", "B'"]
-for t in terms:
-    missing_list --> all items in dictionary not represent in t (e.g. [["C", "C'"], ["D", "D'"]])
-    missing_combos = list(itertools.product(*missing_list)
-    final.append([set(term) | set(missing) for missing in missing_combos])
-"""
 def to_cdnf(min_form):
+    """ CONVERT BACK
+    --make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
+    --find greatest letter (D)
+    --for each term above create set missing pairs [["C", "C'"], ["D", "D'"]]-->missing_list
+    -- create all combinations
+        missing_combos = list(itertools.product(*missing_list)
+    -- merge them
+        final.append([set(term) | set(missing) for missing in missing_combos])
+
+    -----------
+    final = []
+    terms = [('A', "B'"), ("C'", "D'")]
+    create dictionary for all letters A --> ["A", "A'"]; B --> ["B", "B'"]
+    for t in terms:
+        missing_list-->all items in dict not represent in t (e.g. [["C", "C'"], ["D", "D'"]])
+        missing_combos = list(itertools.product(*missing_list)
+        final.append([set(term) | set(missing) for missing in missing_combos])
+    """
+
     if isinstance(min_form, str):
         min_form = list(re.split(r"[^a-zA-Z']+", min_form))
     elif isinstance(min_form, list):
@@ -453,28 +456,29 @@ def to_cdnf(min_form):
     else:
         return ValueError(min_form, "Not valid input")
 
-    print("Orig: ", min_form)
-
     temp_letters = sorted(set("".join(min_form)))
     temp_letters.remove("'")
     letters = [chr(i) for i in range(ord(temp_letters[0]), ord(temp_letters[-1])+ 1)]
 
-    print(letters)
-                   
-    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form]
+    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form] # list of list of letters
+    
     final = []
-    print("New: ", min_form, letters)
     for x in min_form:
         missing_letters = set("".join(x))
         missing_letters.discard("'")
-        missing_letters = list(set(letters) - set(missing_letters))
-        missing_letters = [[x, x + "'"] for x in missing_letters]
-        missing_combos = list(itertools.product(*missing_letters))
-        final.append([set(x) | set(missing) for missing in missing_combos])
+        missing_list = list(set(letters) - set(missing_letters))
+        missing_list = [[x, x + "'"] for x in missing_list]
+        missing_combos = list(itertools.product(*missing_list))
+        final.extend(["".join(sorted(set(x) | set(missing))) for missing in missing_combos])
+        # "".join(sorted(tempItem.termset))
 
-    for x in final:
-        print(x)
-    print(letters, " : ", min_form)
+    result = sorted(list(set(final)), reverse=True)
+    result = ' + '.join(result)
+
+    print("Res: ", result)
+    return result
+
+    # print(letters, " : ", min_form)
 
 
 if __name__ == "__main__":
