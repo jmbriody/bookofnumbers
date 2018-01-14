@@ -1,1 +1,1 @@
-from bookofnumbers.cdnf import quinemc, canonical
+from bookofnumbers.cdnf import quinemc, canonical, to_cdnf

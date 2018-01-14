@@ -75,7 +75,7 @@ quinemc(myitem, highorder_a=True, full_results=False):
 >>> result, term_list, possibles = quinemc(248, False, True)
 
 """
-from __future__ import division  # needed for python2
+# from __future__ import division
 import re
 import itertools
 import string
@@ -119,10 +119,10 @@ def canonical(x, highorder_a=True, includef=False):
     includef (boolean): When True will append "F(x) = " before the result string
 
     '''
-    try:
-        x = int(x)
-    except ValueError:
-        print("canonical(x) requires an integer.")
+    if isinstance(x, int):
+        pass
+    else:
+        return ValueError(x, "canonical(x) requires an integer.")
 
     binary = format(x, 'b')
     binary = binary[::-1]
@@ -467,15 +467,14 @@ def to_cdnf(min_form):
         missing_letters = set("".join(x))
         missing_letters.discard("'")
         missing_list = list(set(letters) - set(missing_letters))
-        missing_list = [[x, x + "'"] for x in missing_list]
+        missing_list = [[q, q + "'"] for q in missing_list]
         missing_combos = list(itertools.product(*missing_list))
         final.extend(["".join(sorted(set(x) | set(missing))) for missing in missing_combos])
-        # "".join(sorted(tempItem.termset))
 
     result = sorted(list(set(final)), reverse=True)
     result = ' + '.join(result)
 
-    print("Res: ", result)
+    # print("Res: ", result)
     return result
 
     # print(letters, " : ", min_form)
@@ -486,13 +485,14 @@ if __name__ == "__main__":
     #    a, b, c, d = quinemc(42589768824798729982179, False, True)
     #    print(a)
     #    a = quinemc(2077)
-    print("2003", quinemc(2003))
-    print("2077", quinemc(2077))
-    print("2078", quinemc(2078))
-    print("2046", quinemc(2046))
-    print("255", quinemc(255))
-    print("0", quinemc(0))
-    canonical(2046)
+    #print("2003", quinemc(2003))
+    #print("2077", quinemc(2077))
+    #print("2078", quinemc(2078))
+    #print("2046", quinemc(2046))
+    #print("255", quinemc(255))
+    #print("0", quinemc(0))
+    #canonical(2046)
+    pass
 
 # 65024
 # 15872

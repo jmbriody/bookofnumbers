@@ -5,6 +5,8 @@ from bookofnumbers import *
 
 def test_quin():
     # a = qmc(2078)
+    assert isinstance(canonical("ABC"), ValueError)
+    assert canonical(2077, False, True) == "f(2077) = ABC'D + A'B'CD' + ABC'D' + A'BC'D' + A'B'C'D'"
     Term = namedtuple('Term', 'termset used ones source generation final')
     assert quinemc(2078) == "B'CD + A'BC'D' + A'B'D + A'B'C"
     assert quinemc(2077) == "B'CD + A'C'D' + A'B'D'"
@@ -19,6 +21,11 @@ def test_quin():
     canon_string_error = "ABCD + A'B'D' + ABC'D' + A'BC'D' + A'B'C'D'"
     assert quinemc(canon_string) == "ABC' + A'C'D' + A'B'D'"
     assert quinemc(canon_list) == "ABC' + A'C'D' + A'B'D'"
+    assert isinstance(quinemc({"ABC", "A'C"}), ValueError)
+
+    assert to_cdnf("B'CD + A'C'D' + A'B'D'") == "AB'CD + A'BC'D' + A'B'CD' + A'B'CD + A'B'C'D'"
+    assert to_cdnf(["B'CD", "A'C'D'", "A'B'D'"]) == "AB'CD + A'BC'D' + A'B'CD' + A'B'CD + A'B'C'D'"
+    assert isinstance(to_cdnf(2077), ValueError)
 
     assert isinstance(quinemc(canon_string_error), ValueError)
     
