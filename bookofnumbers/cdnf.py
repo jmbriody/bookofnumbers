@@ -138,7 +138,7 @@ def canonical(x, highorder_a=True, includef=False):
     indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
 
     miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
-    miniterms = sorted(miniterms, reverse=True)
+    # miniterms = sorted(miniterms, reverse=True)
 
     result = ' + '.join(miniterms)
 
