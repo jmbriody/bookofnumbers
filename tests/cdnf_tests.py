@@ -6,7 +6,7 @@ from bookofnumbers import *
 def test_quin():
     # a = qmc(2078)
     assert isinstance(canonical("ABC"), ValueError)
-    assert canonical(2077, False, True) == "f(2077) = ABC'D + A'B'CD' + ABC'D' + A'BC'D' + A'B'C'D'"
+    assert canonical(2077, True, True) == "f(2077) = AB'CD + A'BC'D' + A'B'CD' + A'B'CD + A'B'C'D'"
     Term = namedtuple('Term', 'termset used ones source generation final')
     assert quinemc(2078) == "B'CD + A'BC'D' + A'B'D + A'B'C"
     assert quinemc(2077) == "B'CD + A'C'D' + A'B'D'"
@@ -29,8 +29,8 @@ def test_quin():
 
     assert isinstance(quinemc(canon_string_error), ValueError)
     
-    second_result = ["AD'", "B'C'D", "A'BC'"]
-    a, b, c = quinemc(2046, False, True)
+    second_result = ["A'D", "AB'C'", "B'CD'"]
+    a, b, c = quinemc(2046, True, True)
     c1 = c[1]
     r = ["".join(sorted(ti.termset)) for ti in c1]
     assert set(r) == set(second_result)

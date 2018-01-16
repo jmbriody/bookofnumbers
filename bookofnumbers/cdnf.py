@@ -1,9 +1,15 @@
 """Functions for generating boolean algebra normal forms and minimization
 
-Provides two features. 1) Takes an integer and returns the Canonical Normal Form associated
-with that integer (based on Section 3.4 of "Digital Design" from Randall Hyde's "The Art of
-Assembly Language Programming"). And 2) Will take a canonical logic statement and return a
-minimized version.
+Provides three features.
+1) Takes an integer and returns the Canonical Normal Form associated with that
+integer (based on Section 3.4 of "Digital Design" from Randall Hyde's "The Art of
+Assembly Language Programming").
+
+2) Will take a minimized equation and return "a" Canonical Normal Form 
+
+3) Will take a canonical logic statement and return a minimized version.
+
+ 
 
 General format of results are:
     "AB" means A AND B
@@ -75,7 +81,6 @@ quinemc(myitem, highorder_a=True, full_results=False):
 >>> result, term_list, possibles = quinemc(248, False, True)
 
 """
-# from __future__ import division
 import re
 import itertools
 import string
@@ -138,7 +143,7 @@ def canonical(x, highorder_a=True, includef=False):
     indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
 
     miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
-    # miniterms = sorted(miniterms, reverse=True)
+    miniterms = sorted(miniterms, reverse=True)
 
     result = ' + '.join(miniterms)
 
@@ -457,8 +462,8 @@ def to_cdnf(min_form):
         return ValueError(min_form, "Not valid input")
 
     temp_letters = sorted(set("".join(min_form)))
-    temp_letters.remove("'")
-    letters = [chr(i) for i in range(ord(temp_letters[0]), ord(temp_letters[-1])+ 1)]
+    temp_letters = [l for l in temp_letters if l is not "'"]
+    letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1])+ 1)]
 
     min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form] # list of list of letters
     
