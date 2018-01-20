@@ -6,3 +6,4 @@
 
 coverage run --source bookofnumbers --omit bookofnumbers/factors.py -m pytest tests/cdnf_tests.py
 coverage report
+coveralls

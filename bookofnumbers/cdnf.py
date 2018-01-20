@@ -32,7 +32,8 @@ In the standard mode (highorder_a = True) A is the high order bit:
 
 When highorder_a is False A would be the low order bit for 248.
 
-Two primary user functions are:
+Three primary user functions are:
+
 caononical(x, highorder_a=False, includef=False):
     Simplest call is canonical(248) which will return the canonical boolean algebraic expression
     for "248". In the default setup A is the High Order bit (highorder_a=True)--i.e. 00001111.
@@ -40,13 +41,15 @@ caononical(x, highorder_a=False, includef=False):
     determines whether "F(248) = " should be prepended to the result.
 
 
-
 >>> canonical(248)
-"ABC + ABC' + AB'C + AB'C' + A'BC"
+"ABC' + ABC + AB'C' + AB'C + A'BC"
 >>> canonical(248, False)
-"ABC + A'BC + AB'C + A'B'C + ABC'"
+"ABC' + ABC + AB'C + A'BC + A'B'C"
 >>> canonical(248, True, True)
-"f(248) = ABC + ABC' + AB'C + AB'C' + A'BC"
+"f(248) = ABC' + ABC + AB'C' + AB'C + A'BC"
+
+to_cdnf(x):
+
 
 quinemc(myitem, highorder_a=True, full_results=False):
     Short for Quinne-McCluskey algorithm:
@@ -71,13 +74,13 @@ quinemc(myitem, highorder_a=True, full_results=False):
 >>> quinemc(248)
 'BC + A'
 >>> quinemc(248, False)
-'AB + C'
+'C + AB'
 >>> quinemc("ABC + A'BC + AB'C + A'B'C + ABC'")
-'AB + C'
+'C + AB'
 >>> quinemc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
-'AB + C'
+'C + AB'
 >>> quinemc("rts + r'ts + rt's + r't's + rts'")
-'rt + s'
+'s + rt'
 >>> result, term_list, possibles = quinemc(248, False, True)
 
 """
@@ -190,13 +193,13 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     the whole canonical form. Essentially items generated using Petrick's Method. May be empty.
 
     >>> quinemc(248)
-    'AB + C'
-    >>> quinemc(248, True)
     'BC + A'
-    >>> quinemc("ABC + A'BC + AB'C + A'B'C + ABC'")
-    'AB + C'
-    >>> quinemc(["ABC", "A'BC", "AB'C", "A'B'C", "ABC'"])
-    'AB + C'
+    >>> quinemc(248, False)
+    'C + AB'
+    >>> quinemc("ABC' + ABC + AB'C' + AB'C + A'BC")
+    'BC + A'
+    >>> quinemc(["ABC", "ABC'", "AB'C'", "AB'C", "A'BC"])
+    'BC + A'
     >>> result, term_list, possibles = quinemc(248, False, True)
 
     Invalid input will return a ValueError (e.g. quinemc(["A'BC", "AB"]) is invalid
@@ -486,6 +489,8 @@ def to_cdnf(min_form):
 
 
 if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
     #    print("here")
     #    a, b, c, d = quinemc(42589768824798729982179, False, True)
     #    print(a)
