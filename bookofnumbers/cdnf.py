@@ -9,7 +9,6 @@ Assembly Language Programming").
 
 3) Will take a canonical logic statement and return a minimized version.
 
- 
 
 General format of results are:
     "AB" means A AND B
@@ -111,7 +110,7 @@ from operator import attrgetter
 # and position holders (e.g. AB'D vs. 10-1). For very large reductions (e.g.
 # quinemc(4222345678921334)) the number of permutations and comparisons grows pretty
 # large and can be slow.
-Term = namedtuple('Term', 'termset used ones source generation final')
+Term = namedtuple('Term', 'termset used ones source generation final binary')
 
 # @coverage
 def canonical(x, highorder_a=True, includef=False):
@@ -170,6 +169,54 @@ def _minterms_(m, highorder_a):
 
 
 # --- END OF Canonical functions ---
+# --- START: Go from Minform to Canonical ---
+def to_cdnf(min_form):
+    """ CONVERT BACK
+    --make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
+    --find greatest letter (D)
+    --for each term above create set missing pairs [["C", "C'"], ["D", "D'"]]-->missing_list
+    -- create all combinations
+        missing_combos = list(itertools.product(*missing_list)
+    -- merge them
+        final.append([set(term) | set(missing) for missing in missing_combos])
+
+    -----------
+    final = []
+    terms = [('A', "B'"), ("C'", "D'")]
+    create dictionary for all letters A --> ["A", "A'"]; B --> ["B", "B'"]
+    for t in terms:
+        missing_list-->all items in dict not represent in t (e.g. [["C", "C'"], ["D", "D'"]])
+        missing_combos = list(itertools.product(*missing_list)
+        final.append([set(term) | set(missing) for missing in missing_combos])
+    """
+
+    if isinstance(min_form, str):
+        min_form = list(re.split(r"[^a-zA-Z']+", min_form))
+    elif isinstance(min_form, list):
+        pass
+    else:
+        return ValueError(min_form, "Not valid input")
+
+    temp_letters = sorted(set("".join(min_form)))
+    temp_letters = [l for l in temp_letters if l is not "'"]
+    letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1])+ 1)]
+
+    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form] # list of list of letters
+    
+    final = []
+    for x in min_form:
+        missing_letters = set("".join(x))
+        missing_letters.discard("'")
+        missing_list = list(set(letters) - set(missing_letters))
+        missing_list = [[q, q + "'"] for q in missing_list]
+        missing_combos = list(itertools.product(*missing_list))
+        final.extend(["".join(sorted(set(x) | set(missing))) for missing in missing_combos])
+
+    result = sorted(list(set(final)), reverse=True)
+    result = ' + '.join(result)
+
+    return result
+# --- END: Go from Minform to Canonical ---
 
 # @coverage
 def quinemc(myitem, highorder_a=True, full_results=False):
@@ -272,12 +319,18 @@ def _create_first_generation_(terms):
     # Remove duplicate terms if called with something like quinemc("ABCD + CDBA + ABC'D + DC'AB")
     temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
 
-    temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None)
+    temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None, _make_binary(x))
                  for x in temp_terms]
     temp_list = sorted(temp_list, key=attrgetter('ones'))
     for idx, item in enumerate(temp_list):
         temp_list[idx] = item._replace(source=[idx])
     return temp_list
+
+def _make_binary(term):
+    new_term = "".join(sorted(list(term)))
+    new_term = re.sub("[A-Za-z]'", "0", new_term)
+    new_term = re.sub("[A-Za-z]", "1", new_term)
+    return new_term
 
 
 # @coverage
@@ -314,14 +367,14 @@ def _create_new_terms_(orig_term_list, gen):
                         sources.append(source)
                         result.append(Term(new_term, False,
                                            len(new_term.intersection(set(string.ascii_letters))),
-                                           source, (gen + 1), None))
+                                           source, (gen + 1), None, None))
     result = sorted(result, key=attrgetter('ones'))
 
     # set used terms as used in orig_term_list
     for key in used_dict.keys():
         current = orig_term_list[key]
         orig_term_list[key] = Term(current.termset, True, current.ones,
-                                   current.source, current.generation, None)
+                                   current.source, current.generation, None, current.binary)
 
     return result
 
@@ -436,56 +489,6 @@ def _check_combinations_(find_dict, term_list, keep_columns):
                 possible_terms[idx].append(term_list[i])
 
     return possible_terms
-
-def to_cdnf(min_form):
-    """ CONVERT BACK
-    --make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
-    --find greatest letter (D)
-    --for each term above create set missing pairs [["C", "C'"], ["D", "D'"]]-->missing_list
-    -- create all combinations
-        missing_combos = list(itertools.product(*missing_list)
-    -- merge them
-        final.append([set(term) | set(missing) for missing in missing_combos])
-
-    -----------
-    final = []
-    terms = [('A', "B'"), ("C'", "D'")]
-    create dictionary for all letters A --> ["A", "A'"]; B --> ["B", "B'"]
-    for t in terms:
-        missing_list-->all items in dict not represent in t (e.g. [["C", "C'"], ["D", "D'"]])
-        missing_combos = list(itertools.product(*missing_list)
-        final.append([set(term) | set(missing) for missing in missing_combos])
-    """
-
-    if isinstance(min_form, str):
-        min_form = list(re.split(r"[^a-zA-Z']+", min_form))
-    elif isinstance(min_form, list):
-        pass
-    else:
-        return ValueError(min_form, "Not valid input")
-
-    temp_letters = sorted(set("".join(min_form)))
-    temp_letters = [l for l in temp_letters if l is not "'"]
-    letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1])+ 1)]
-
-    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form] # list of list of letters
-    
-    final = []
-    for x in min_form:
-        missing_letters = set("".join(x))
-        missing_letters.discard("'")
-        missing_list = list(set(letters) - set(missing_letters))
-        missing_list = [[q, q + "'"] for q in missing_list]
-        missing_combos = list(itertools.product(*missing_list))
-        final.extend(["".join(sorted(set(x) | set(missing))) for missing in missing_combos])
-
-    result = sorted(list(set(final)), reverse=True)
-    result = ' + '.join(result)
-
-    # print("Res: ", result)
-    return result
-
-    # print(letters, " : ", min_form)
 
 
 if __name__ == "__main__":

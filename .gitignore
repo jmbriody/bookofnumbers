@@ -102,3 +102,4 @@ ENV/
 .mypy_cache/
 
 *_patch.py
+.vscode/
