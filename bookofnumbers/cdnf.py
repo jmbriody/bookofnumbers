@@ -511,6 +511,7 @@ if __name__ == "__main__":
 # 15872
 # 48640
 # **Situation 4 -- 38400**
+# interesting one: a, b, c = quinemc(248725692, True, True)
 
 
 # a,  b,  c,  d = quinemc(2003, False, True)
