@@ -86,6 +86,8 @@ quinemc(myitem, highorder_a=True, full_results=False):
 import re
 import itertools
 import string
+import operator
+import pprint as pp
 from collections import namedtuple, defaultdict
 from operator import attrgetter
 #from profilehooks import coverage, profile
@@ -110,7 +112,7 @@ from operator import attrgetter
 # and position holders (e.g. AB'D vs. 10-1). For very large reductions (e.g.
 # quinemc(4222345678921334)) the number of permutations and comparisons grows pretty
 # large and can be slow.
-Term = namedtuple('Term', 'termset used ones source generation final binary')
+Term = namedtuple('Term', 'termset used ones source generation final binary index')
 
 # @coverage
 def canonical(x, highorder_a=True, includef=False):
@@ -319,10 +321,12 @@ def _create_first_generation_(terms):
     # Remove duplicate terms if called with something like quinemc("ABCD + CDBA + ABC'D + DC'AB")
     temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
 
-    temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None, _make_binary(x))
+    temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None, _make_binary(x), None)
                  for x in temp_terms]
     temp_list = sorted(temp_list, key=attrgetter('ones'))
     for idx, item in enumerate(temp_list):
+        print(idx, item)
+        temp_list[idx] = temp_list[idx]._replace(index=idx)
         temp_list[idx] = item._replace(source=[idx])
     return temp_list
 
@@ -347,18 +351,29 @@ def _merge_terms_(term_list, gen):
 
 
 # @coverage
+# @profile
 def _create_new_terms_(orig_term_list, gen):
+    # Slow--see about numpy
     used_dict = {}  # a dictionary for used items
     sources = []  # avoid duplicate merges
     result = []
+    
     working_list = [x for x in orig_term_list if x.generation == gen]
+    working_list = [list(group) for key,group in itertools.groupby(working_list, operator.itemgetter(2))]
+    last_ones = len(working_list) - 1
+    current = 0
 
-    for x in working_list:
-        for y in working_list:
-            if y.ones == (x.ones + 1):
+    while current < last_ones:
+        first_list, second_list = working_list[current], working_list[current + 1]
+        for x in first_list:
+            for y in second_list:
                 sym_set = y.termset.symmetric_difference(x.termset)
+                # pp.pprint(sym_set)
 
-                if len(sym_set) == 2 and list(sym_set)[0][0] == list(sym_set)[1][0]:
+                # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
+                if len(sym_set) == 2 and sym_set.pop().replace("'", "") == sym_set.pop().replace("'", ""):
+                    # convert used_dict to set? process when done
+                    # pp.pprint(x)
                     used_dict[orig_term_list.index(x)] = True
                     used_dict[orig_term_list.index(y)] = True
                     new_term = y.termset.intersection(x.termset)
@@ -366,15 +381,16 @@ def _create_new_terms_(orig_term_list, gen):
                     if source not in sources:
                         sources.append(source)
                         result.append(Term(new_term, False,
-                                           len(new_term.intersection(set(string.ascii_letters))),
-                                           source, (gen + 1), None, None))
+                                        len(new_term.intersection(set(string.ascii_letters))),
+                                        source, (gen + 1), None, None, None))
+        current += 1
     result = sorted(result, key=attrgetter('ones'))
 
     # set used terms as used in orig_term_list
     for key in used_dict.keys():
         current = orig_term_list[key]
         orig_term_list[key] = Term(current.termset, True, current.ones,
-                                   current.source, current.generation, None, current.binary)
+                                   current.source, current.generation, None, current.binary, None)
 
     return result
 
@@ -492,8 +508,9 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 
 
 if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+    quinemc(to_cdnf("A + FI"))
+    #import doctest
+    #doctest.testmod()
     #    print("here")
     #    a, b, c, d = quinemc(42589768824798729982179, False, True)
     #    print(a)
