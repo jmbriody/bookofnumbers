@@ -88,7 +88,7 @@ import itertools
 import string
 import operator
 import pprint as pp
-import line_profiler
+# import line_profiler
 from collections import namedtuple, defaultdict
 from operator import attrgetter
 #from profilehooks import coverage, profile
@@ -350,7 +350,7 @@ def _merge_terms_(term_list, gen):
 
 
 # @coverage
-@profile
+# @profile
 def _create_new_terms_(orig_term_list, gen):
     # Slow--see about numpy
     used_dict = {}  # a dictionary for used items
