@@ -5,7 +5,7 @@ Provides three features.
 integer (based on Section 3.4 of "Digital Design" from Randall Hyde's "The Art of
 Assembly Language Programming").
 
-2) Will take a minimized equation and return "a" Canonical Normal Form 
+2) Will take a minimized equation and return "a" Canonical Normal Form
 
 3) Will take a canonical logic statement and return a minimized version.
 
@@ -88,6 +88,7 @@ import itertools
 import string
 import operator
 import pprint as pp
+import line_profiler
 from collections import namedtuple, defaultdict
 from operator import attrgetter
 #from profilehooks import coverage, profile
@@ -112,7 +113,7 @@ from operator import attrgetter
 # and position holders (e.g. AB'D vs. 10-1). For very large reductions (e.g.
 # quinemc(4222345678921334)) the number of permutations and comparisons grows pretty
 # large and can be slow.
-Term = namedtuple('Term', 'termset used ones source generation final binary index')
+Term = namedtuple('Term', 'termset used ones source generation final binary row')
 
 # @coverage
 def canonical(x, highorder_a=True, includef=False):
@@ -204,7 +205,7 @@ def to_cdnf(min_form):
     letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1])+ 1)]
 
     min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form] # list of list of letters
-    
+
     final = []
     for x in min_form:
         missing_letters = set("".join(x))
@@ -321,13 +322,11 @@ def _create_first_generation_(terms):
     # Remove duplicate terms if called with something like quinemc("ABCD + CDBA + ABC'D + DC'AB")
     temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
 
-    temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None, _make_binary(x), None)
-                 for x in temp_terms]
+    temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None,
+                      _make_binary(x), None) for x in temp_terms]
     temp_list = sorted(temp_list, key=attrgetter('ones'))
     for idx, item in enumerate(temp_list):
-        print(idx, item)
-        temp_list[idx] = temp_list[idx]._replace(index=idx)
-        temp_list[idx] = item._replace(source=[idx])
+        temp_list[idx] = item._replace(source=[idx], row=idx)
     return temp_list
 
 def _make_binary(term):
@@ -342,7 +341,7 @@ def _merge_terms_(term_list, gen):
     done = False
     new_terms = _create_new_terms_(term_list, gen)
 
-    if len(new_terms) > 0:
+    if new_terms:
         term_list.extend(new_terms)
     else:
         done = True
@@ -351,15 +350,15 @@ def _merge_terms_(term_list, gen):
 
 
 # @coverage
-# @profile
+@profile
 def _create_new_terms_(orig_term_list, gen):
     # Slow--see about numpy
     used_dict = {}  # a dictionary for used items
     sources = []  # avoid duplicate merges
     result = []
-    
+
     working_list = [x for x in orig_term_list if x.generation == gen]
-    working_list = [list(group) for key,group in itertools.groupby(working_list, operator.itemgetter(2))]
+    working_list = [list(group) for key, group in itertools.groupby(working_list, operator.itemgetter(2))]
     last_ones = len(working_list) - 1
     current = 0
 
@@ -374,23 +373,25 @@ def _create_new_terms_(orig_term_list, gen):
                 if len(sym_set) == 2 and sym_set.pop().replace("'", "") == sym_set.pop().replace("'", ""):
                     # convert used_dict to set? process when done
                     # pp.pprint(x)
-                    used_dict[orig_term_list.index(x)] = True
-                    used_dict[orig_term_list.index(y)] = True
+                    used_dict[x.row] = True
+                    used_dict[y.row] = True
                     new_term = y.termset.intersection(x.termset)
                     source = sorted(y.source + x.source)
                     if source not in sources:
                         sources.append(source)
                         result.append(Term(new_term, False,
-                                        len(new_term.intersection(set(string.ascii_letters))),
-                                        source, (gen + 1), None, None, None))
+                                           len(new_term.intersection(set(string.ascii_letters))),
+                                           source, (gen + 1), None, None, None))
         current += 1
     result = sorted(result, key=attrgetter('ones'))
+    for idx, item in enumerate(result):
+        result[idx] = result[idx]._replace(row=len(orig_term_list) + idx)
 
     # set used terms as used in orig_term_list
     for key in used_dict.keys():
         current = orig_term_list[key]
         orig_term_list[key] = Term(current.termset, True, current.ones,
-                                   current.source, current.generation, None, current.binary, None)
+                                   current.source, current.generation, None, current.binary, current.row)
 
     return result
 
