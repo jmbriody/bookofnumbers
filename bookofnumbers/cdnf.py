@@ -480,26 +480,39 @@ def _make_find_dict_(term_list, keep_columns):
 
 
 # @coverage
+# @profile
 def _check_combinations_(find_dict, term_list, keep_columns):
     match_idx = []
     matches = []
     possible_terms = defaultdict(list)
     indexes = []
+    min_length = 0
+    break_count = 0
 
     for x in range(2, (len(find_dict) + 1)):
+        # adding more and more combinations isnt likely to improve (shorten) lenght of result
+        # so once matches are found we limit how many more sets of combinations we check
+        # there may however be funky corner cases
+        if break_count >= 2:
+            break
+        else:
+            if len(matches) > 0:
+                break_count += 1
         for items in itertools.combinations(find_dict.keys(), x):
             combined_sources = set()
             temp_count = 0
             for idx in items:
                 combined_sources.update(find_dict[idx].sourceSet)
                 temp_count += find_dict[idx].length
-            if set(keep_columns) == combined_sources:
+            if set(keep_columns) == combined_sources and (min_length == 0 or temp_count <= min_length): 
+                if (temp_count < min_length or min_length == 0):
+                    del matches[:]
+                    min_length = temp_count
                 matches.append(items)
-                match_idx.append(temp_count)
+
 
     if len(matches) > 0:
-        indexes = [matches[i] for i, v in enumerate(match_idx) if v == min(match_idx)]
-        for idx, value in enumerate(indexes):
+        for idx, value in enumerate(matches):
             for i in value:
                 if idx == 0:
                     term_list[i] = term_list[i]._replace(final="Added")
@@ -509,7 +522,9 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 
 
 if __name__ == "__main__":
-    quinemc(to_cdnf("A + FI"))
+    quinemc(42589768824798729982179, True, True)
+    #quinemc(638, 1, 1)
+    # quinemc(to_cdnf("A + FI"))
     #import doctest
     #doctest.testmod()
     #    print("here")
