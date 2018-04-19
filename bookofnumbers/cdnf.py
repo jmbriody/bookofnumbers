@@ -86,11 +86,10 @@ quinemc(myitem, highorder_a=True, full_results=False):
 import re
 import itertools
 import string
-import operator
 import pprint as pp
 # import line_profiler
 from collections import namedtuple, defaultdict
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 #from profilehooks import coverage, profile
 
 # Term is a namedtuple used by the Quin-McCluskey reduction portion of the code.
@@ -306,7 +305,7 @@ def _minimize_(cdnf):
 
     # Handle special cases-- quinemc(0), quinemc(15), quinemc(255),
     # quinemc("AB + A'B + AB' + A'B'"), etc.
-    if len(term_list) == 1 and len(term_list[0].termset) == 0:
+    if term_list and not term_list[0].termset:
         result = "0"
     if result == "":
         result = "1"
@@ -358,11 +357,12 @@ def _create_new_terms_(orig_term_list, gen):
     result = []
 
     working_list = [x for x in orig_term_list if x.generation == gen]
-    working_list = [list(group) for key, group in itertools.groupby(working_list, operator.itemgetter(2))]
-    last_ones = len(working_list) - 1
+    working_list = [list(group) for key, group in
+                    itertools.groupby(working_list, itemgetter(2))]
+    # last_ones = len(working_list) - 1
     current = 0
 
-    while current < last_ones:
+    while current < len(working_list) - 1:
         first_list, second_list = working_list[current], working_list[current + 1]
         for x in first_list:
             for y in second_list:
@@ -371,8 +371,6 @@ def _create_new_terms_(orig_term_list, gen):
 
                 # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
                 if len(sym_set) == 2 and sym_set.pop().replace("'", "") == sym_set.pop().replace("'", ""):
-                    # convert used_dict to set? process when done
-                    # pp.pprint(x)
                     used_dict[x.row] = True
                     used_dict[y.row] = True
                     new_term = y.termset.intersection(x.termset)
@@ -388,10 +386,11 @@ def _create_new_terms_(orig_term_list, gen):
         result[idx] = result[idx]._replace(row=len(orig_term_list) + idx)
 
     # set used terms as used in orig_term_list
-    for key in used_dict.keys():
+    for key in used_dict:
         current = orig_term_list[key]
         orig_term_list[key] = Term(current.termset, True, current.ones,
-                                   current.source, current.generation, None, current.binary, current.row)
+                                   current.source, current.generation, None,
+                                   current.binary, current.row)
 
     return result
 
@@ -472,7 +471,7 @@ def _make_find_dict_(term_list, keep_columns):
                       if k.used is False and k.final is None]:
         temp_source = set(keep_columns) & set(item.source)
 
-        if len(temp_source) > 0:
+        if temp_source:
             temp_tuple = search_tuple(temp_source, len(item.termset))
             find_dict[idx] = temp_tuple
 
@@ -482,10 +481,8 @@ def _make_find_dict_(term_list, keep_columns):
 # @coverage
 # @profile
 def _check_combinations_(find_dict, term_list, keep_columns):
-    match_idx = []
     matches = []
     possible_terms = defaultdict(list)
-    indexes = []
     min_length = 0
     break_count = 0
 
@@ -496,7 +493,7 @@ def _check_combinations_(find_dict, term_list, keep_columns):
         if break_count >= 2:
             break
         else:
-            if len(matches) > 0:
+            if matches:
                 break_count += 1
         for items in itertools.combinations(find_dict.keys(), x):
             combined_sources = set()
@@ -504,14 +501,14 @@ def _check_combinations_(find_dict, term_list, keep_columns):
             for idx in items:
                 combined_sources.update(find_dict[idx].sourceSet)
                 temp_count += find_dict[idx].length
-            if set(keep_columns) == combined_sources and (min_length == 0 or temp_count <= min_length): 
+            if set(keep_columns) == combined_sources and (min_length == 0 or temp_count <= min_length):
                 if (temp_count < min_length or min_length == 0):
                     del matches[:]
                     min_length = temp_count
                 matches.append(items)
 
 
-    if len(matches) > 0:
+    if matches:
         for idx, value in enumerate(matches):
             for i in value:
                 if idx == 0:
@@ -527,10 +524,6 @@ if __name__ == "__main__":
     # quinemc(to_cdnf("A + FI"))
     #import doctest
     #doctest.testmod()
-    #    print("here")
-    #    a, b, c, d = quinemc(42589768824798729982179, False, True)
-    #    print(a)
-    #    a = quinemc(2077)
     #print("2003", quinemc(2003))
     #print("2077", quinemc(2077))
     #print("2078", quinemc(2078))
@@ -545,24 +538,3 @@ if __name__ == "__main__":
 # 48640
 # **Situation 4 -- 38400**
 # interesting one: a, b, c = quinemc(248725692, True, True)
-
-
-# a,  b,  c,  d = quinemc(2003, False, True)
-#    for i,  v in d.items():
-#        print(i, v)
-#    mj = canonical(14)
-# skokie--6:30 -- 8:45 concert
-#    mk = canonical(248)
-#    mi = canonical(22256)
-#    print(mj, mk, mi)
-
-#    a, b, c, d = quinemc(2078)
-#    print(a)
-#    for x in b:
-#        print(x)
-#    print("Termlist")
-#    for x in c:
-#        print(x)
-#    print("Dictionary")
-#    for k, v, in d.items():
-#        print(k, ":\t", v)
