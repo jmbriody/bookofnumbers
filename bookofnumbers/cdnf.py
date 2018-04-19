@@ -112,9 +112,12 @@ from operator import attrgetter, itemgetter
 # and position holders (e.g. AB'D vs. 10-1). For very large reductions (e.g.
 # quinemc(4222345678921334)) the number of permutations and comparisons grows pretty
 # large and can be slow.
-Term = namedtuple('Term', 'termset used ones source generation final binary row')
+Term = namedtuple(
+    'Term', 'termset used ones source generation final binary row')
 
 # @coverage
+
+
 def canonical(x, highorder_a=True, includef=False):
     '''
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
@@ -144,7 +147,8 @@ def canonical(x, highorder_a=True, includef=False):
 
     # Funky formatter: essentially `format('10', '05b')` to get 00010--i.e. a binary equal to
     # the length of letters for each bit position that equals 1 in our input
-    indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
+    indexes = [(format(i.start(), '0' + str(letters) + 'b'))
+               for i in re.finditer('1', binary)]
 
     miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
     miniterms = sorted(miniterms, reverse=True)
@@ -156,6 +160,8 @@ def canonical(x, highorder_a=True, includef=False):
     return result
 
 # @coverage
+
+
 def _minterms_(m, highorder_a):
     alpha = sorted(string.ascii_letters)
     result = ''
@@ -201,9 +207,10 @@ def to_cdnf(min_form):
 
     temp_letters = sorted(set("".join(min_form)))
     temp_letters = [l for l in temp_letters if l is not "'"]
-    letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1])+ 1)]
+    letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1]) + 1)]
 
-    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form] # list of list of letters
+    min_form = [re.findall("([A-Za-z]'*)", x)
+                for x in min_form]  # list of list of letters
 
     final = []
     for x in min_form:
@@ -212,7 +219,8 @@ def to_cdnf(min_form):
         missing_list = list(set(letters) - set(missing_letters))
         missing_list = [[q, q + "'"] for q in missing_list]
         missing_combos = list(itertools.product(*missing_list))
-        final.extend(["".join(sorted(set(x) | set(missing))) for missing in missing_combos])
+        final.extend(["".join(sorted(set(x) | set(missing)))
+                      for missing in missing_combos])
 
     result = sorted(list(set(final)), reverse=True)
     result = ' + '.join(result)
@@ -221,6 +229,8 @@ def to_cdnf(min_form):
 # --- END: Go from Minform to Canonical ---
 
 # @coverage
+
+
 def quinemc(myitem, highorder_a=True, full_results=False):
     '''Short for Quinn-McCluskey algorithm
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
@@ -316,10 +326,12 @@ def _minimize_(cdnf):
 # @coverage
 def _create_first_generation_(terms):
     my_letters = set(sorted(string.ascii_letters))
-    temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in terms]  # Convert to list of sets
+    temp_terms = [set(re.findall("([A-Za-z]'*)", x))
+                  for x in terms]  # Convert to list of sets
 
     # Remove duplicate terms if called with something like quinemc("ABCD + CDBA + ABC'D + DC'AB")
-    temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
+    temp_terms = list(temp_terms for temp_terms,
+                      _ in itertools.groupby(temp_terms))
 
     temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None,
                       _make_binary(x), None) for x in temp_terms]
@@ -327,6 +339,7 @@ def _create_first_generation_(terms):
     for idx, item in enumerate(temp_list):
         temp_list[idx] = item._replace(source=[idx], row=idx)
     return temp_list
+
 
 def _make_binary(term):
     new_term = "".join(sorted(list(term)))
@@ -377,9 +390,8 @@ def _create_new_terms_(orig_term_list, gen):
                     source = sorted(y.source + x.source)
                     if source not in sources:
                         sources.append(source)
-                        result.append(Term(new_term, False,
-                                           len(new_term.intersection(set(string.ascii_letters))),
-                                           source, (gen + 1), None, None, None))
+                        result.append(Term(new_term, False, len(new_term.intersection(
+                            set(string.ascii_letters))), source, (gen + 1), None, None, None))
         current += 1
     result = sorted(result, key=attrgetter('ones'))
     for idx, item in enumerate(result):
@@ -429,7 +441,8 @@ def _implicants_(term_list):
     # if a single term doesn't cover the remaining 1st gen items start looking
     # for combinations of Terms that will fit the bill.
     if not finished:
-        possible_terms = _check_combinations_(find_dict, term_list, keep_columns)
+        possible_terms = _check_combinations_(
+            find_dict, term_list, keep_columns)
 
     return possible_terms
 
@@ -507,7 +520,6 @@ def _check_combinations_(find_dict, term_list, keep_columns):
                     min_length = temp_count
                 matches.append(items)
 
-
     if matches:
         for idx, value in enumerate(matches):
             for i in value:
@@ -523,14 +535,14 @@ if __name__ == "__main__":
     #quinemc(638, 1, 1)
     # quinemc(to_cdnf("A + FI"))
     #import doctest
-    #doctest.testmod()
+    # doctest.testmod()
     #print("2003", quinemc(2003))
     #print("2077", quinemc(2077))
     #print("2078", quinemc(2078))
     #print("2046", quinemc(2046))
     #print("255", quinemc(255))
     #print("0", quinemc(0))
-    #canonical(2046)
+    # canonical(2046)
     pass
 
 # 65024
