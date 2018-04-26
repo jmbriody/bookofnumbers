@@ -261,6 +261,8 @@ def quinemc(myitem, highorder_a=True, full_results=False):
 
     Invalid input will return a ValueError (e.g. quinemc(["A'BC", "AB"]) is invalid
     because second term must contain a "C".
+
+    Add code for doing dont_care items
     '''
     if isinstance(myitem, list) and len(myitem) == 2 and all(isinstance(part, list) for part in myitem):
         cdnf = convert_to_terms(myitem[0], highorder_a)
