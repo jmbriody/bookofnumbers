@@ -151,12 +151,12 @@ def factors(n):
     # First take all prime factor tuples and generate prime ** [0 through instances]
     for x in range(0, len(primef)):
         tfactor = primef[x][0]
-        expanded = [tfactor**q for q in range(1, primef[x][1] + 1) ]
+        expanded = [tfactor**q for q in range(1, primef[x][1] + 1)]
         tempresult.append(expanded)
     # print(tempresult)
 
     resset = set(tempresult[0])
-    
+
     # I can never find my jelly pens with twin 2.5 year-olds in the house
     # Need to take first list from factor list and convert to set
     # Iteratively multiply following lists from factor list and make them
@@ -192,8 +192,9 @@ def fibonacci(n):
     return math.ceil(fresult)
 
 def factors2(n):
-    return set(x for tup in ([i, n//i] 
-                for i in range(1, int(n**0.5)+1) if n % i == 0) for x in tup)
+    return set(x for tup in (
+        [i, n//i] for i in
+        range(1, int(n**0.5)+1) if n % i == 0) for x in tup)
 
 if __name__ == "__main__":
     print(len(PRIME_LIST))
@@ -207,7 +208,7 @@ if __name__ == "__main__":
 #        factors2(x)
 #    print(timeit.default_timer() - startt)
 
-    
+
 #    reset_prime_list(1000)
 #    print(len(PRIME_LIST))
 #    prime_factors(100023)
