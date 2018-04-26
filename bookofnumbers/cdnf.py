@@ -131,7 +131,9 @@ def canonical(x, highorder_a=True, includef=False):
     includef (boolean): When True will append "F(x) = " before the result string
 
     '''
-    if not(isinstance(x, int)):
+    if isinstance(x, int):
+        pass
+    else:
         return ValueError(x, "canonical(x) requires an integer.")
 
     binary = format(x, 'b')
@@ -262,19 +264,14 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     Invalid input will return a ValueError (e.g. quinemc(["A'BC", "AB"]) is invalid
     because second term must contain a "C".
     '''
-    if isinstance(myitem, list) and len(myitem) == 2 and all(isinstance(part, list) for part in myitem):
-        cdnf = convert_to_terms(myitem[0], highorder_a)
-        if all(isinstance(i, int) for i in myitem[1]):
-            dont_care = myitem[1]
-        elif all(isinstnace(a, str) for a in myitem[1]):
-            temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in myitem[1]]
-            dont_care = [int(_make_binary(z), 2) for z in temp_terms]
+    if isinstance(myitem, int):
+        cdnf = canonical(myitem, highorder_a).split(' + ')
+    elif isinstance(myitem, str):
+        cdnf = re.split(r"[^a-zA-Z']+", myitem)
+    elif isinstance(myitem, list):
+        cdnf = myitem
     else:
-        cdnf = convert_to_terms(myitem, highorder_a)
-        dont_care = None
-
-    if cdnf == None:
-        return ValueError(myitem, "Invalid input")
+        return ValueError(myitem, "Not valid input")
 
     test_string = "".join(sorted(re.sub("'", '', cdnf[0])))
     for item in cdnf:
@@ -286,18 +283,6 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     else:
         return _minimize_(cdnf)[0]
 
-def convert_to_terms(item_in, highorder_a):
-    result = item_in
-    if isinstance(item_in, int):
-        result = canonical(item_in, highorder_a).split(' + ')
-    elif isinstance(item_in, str):
-        result = re.split(r"[^a-zA-Z']+", item_in)
-    elif isinstance(item_in, list) and all(isinstance(x, str) for x in item_in):
-        result = item_in
-    else:
-        result = None
-    
-    return result
 
 # @coverage
 def _minimize_(cdnf):
@@ -356,8 +341,8 @@ def _create_first_generation_(terms):
     return temp_list
 
 
-def _make_binary(new_term):
-    new_term = "".join(sorted(list(new_term)))
+def _make_binary(term):
+    new_term = "".join(sorted(list(term)))
     new_term = re.sub("[A-Za-z]'", "0", new_term)
     new_term = re.sub("[A-Za-z]", "1", new_term)
     return new_term
