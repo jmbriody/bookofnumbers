@@ -131,7 +131,7 @@ def canonical(x, highorder_a=True, includef=False):
     includef (boolean): When True will append "F(x) = " before the result string
 
     '''
-    if not(isinstance(x, int)):
+    if not isinstance(x, int):
         return ValueError(x, "canonical(x) requires an integer.")
 
     binary = format(x, 'b')
@@ -156,9 +156,6 @@ def canonical(x, highorder_a=True, includef=False):
     if includef is True:
         result = "f(" + str(x) + ") = " + result
     return result
-
-# @coverage
-
 
 def _minterms_(m, highorder_a):
     alpha = sorted(string.ascii_letters)
@@ -204,7 +201,7 @@ def to_cdnf(min_form):
         return ValueError(min_form, "Not valid input")
 
     temp_letters = sorted(set("".join(min_form)))
-    temp_letters = [l for l in temp_letters if l is not "'"]
+    temp_letters = [let for let in temp_letters if let is not "'"]
     letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1]) + 1)]
 
     min_form = [re.findall("([A-Za-z]'*)", x)
@@ -264,18 +261,20 @@ def quinemc(myitem, highorder_a=True, full_results=False):
 
     Add code for doing dont_care items
     '''
-    if isinstance(myitem, list) and len(myitem) == 2 and all(isinstance(part, list) for part in myitem):
+    if (isinstance(myitem, list) and
+            len(myitem) == 2 and
+            all(isinstance(part, list) for part in myitem)):
         cdnf = convert_to_terms(myitem[0], highorder_a)
         if all(isinstance(i, int) for i in myitem[1]):
             dont_care = myitem[1]
-        elif all(isinstnace(a, str) for a in myitem[1]):
+        elif all(isinstance(a, str) for a in myitem[1]):
             temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in myitem[1]]
             dont_care = [int(_make_binary(z), 2) for z in temp_terms]
     else:
         cdnf = convert_to_terms(myitem, highorder_a)
         dont_care = None
 
-    if cdnf == None:
+    if cdnf is None:
         return ValueError(myitem, "Invalid input")
 
     test_string = "".join(sorted(re.sub("'", '', cdnf[0])))
@@ -298,7 +297,7 @@ def convert_to_terms(item_in, highorder_a):
         result = item_in
     else:
         result = None
-    
+
     return result
 
 # @coverage
@@ -400,7 +399,8 @@ def _create_new_terms_(orig_term_list, gen):
                 # pp.pprint(sym_set)
 
                 # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
-                if len(sym_set) == 2 and sym_set.pop().replace("'", "") == sym_set.pop().replace("'", ""):
+                if (len(sym_set) == 2 and
+                        sym_set.pop().replace("'", "") == sym_set.pop().replace("'", "")):
                     used_dict[x.row] = True
                     used_dict[y.row] = True
                     new_term = y.termset.intersection(x.termset)
@@ -531,7 +531,8 @@ def _check_combinations_(find_dict, term_list, keep_columns):
             for idx in items:
                 combined_sources.update(find_dict[idx].sourceSet)
                 temp_count += find_dict[idx].length
-            if set(keep_columns) == combined_sources and (min_length == 0 or temp_count <= min_length):
+            if (set(keep_columns) == combined_sources
+                    and (min_length == 0 or temp_count <= min_length)):
                 if (temp_count < min_length or min_length == 0):
                     del matches[:]
                     min_length = temp_count
