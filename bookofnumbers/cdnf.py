@@ -145,8 +145,7 @@ def canonical(x, highorder_a=True, includef=False):
 
     # Funky formatter: essentially `format('10', '05b')` to get 00010--i.e. a binary equal to
     # the length of letters for each bit position that equals 1 in our input
-    indexes = [(format(i.start(), '0' + str(letters) + 'b'))
-               for i in re.finditer('1', binary)]
+    indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
 
     miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
     miniterms = sorted(miniterms, reverse=True)
@@ -182,17 +181,7 @@ def to_cdnf(min_form):
         missing_combos = list(itertools.product(*missing_list)
     -- merge them
         final.append([set(term) | set(missing) for missing in missing_combos])
-
-    -----------
-    final = []
-    terms = [('A', "B'"), ("C'", "D'")]
-    create dictionary for all letters A --> ["A", "A'"]; B --> ["B", "B'"]
-    for t in terms:
-        missing_list-->all items in dict not represent in t (e.g. [["C", "C'"], ["D", "D'"]])
-        missing_combos = list(itertools.product(*missing_list)
-        final.append([set(term) | set(missing) for missing in missing_combos])
     """
-
     if isinstance(min_form, str):
         min_form = list(re.split(r"[^a-zA-Z']+", min_form))
     elif isinstance(min_form, list):
@@ -201,11 +190,10 @@ def to_cdnf(min_form):
         return ValueError(min_form, "Not valid input")
 
     temp_letters = sorted(set("".join(min_form)))
-    temp_letters = [let for let in temp_letters if let is not "'"]
+    temp_letters = [letter for letter in temp_letters if letter is not "'"]
     letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1]) + 1)]
 
-    min_form = [re.findall("([A-Za-z]'*)", x)
-                for x in min_form]  # list of list of letters
+    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form]  # list of list of letters
 
     final = []
     for x in min_form:
@@ -214,8 +202,7 @@ def to_cdnf(min_form):
         missing_list = list(set(letters) - set(missing_letters))
         missing_list = [[q, q + "'"] for q in missing_list]
         missing_combos = list(itertools.product(*missing_list))
-        final.extend(["".join(sorted(set(x) | set(missing)))
-                      for missing in missing_combos])
+        final.extend(["".join(sorted(set(x) | set(missing))) for missing in missing_combos])
 
     result = sorted(list(set(final)), reverse=True)
     result = ' + '.join(result)
@@ -267,7 +254,7 @@ def quinemc(myitem, highorder_a=True, full_results=False):
         cdnf = convert_to_terms(myitem[0], highorder_a)
         if all(isinstance(i, int) for i in myitem[1]):
             dont_care = myitem[1]
-        elif all(isinstance(a, str) for a in myitem[1]):
+        elif all(isinstance(a, str) for a in myitem[1]): # don't care are terms e.g ABC'D
             temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in myitem[1]]
             dont_care = [int(_make_binary(z), 2) for z in temp_terms]
     else:
@@ -346,8 +333,7 @@ def _create_first_generation_(terms):
                   for x in terms]  # Convert to list of sets
 
     # Remove duplicate terms if called with something like quinemc("ABCD + CDBA + ABC'D + DC'AB")
-    temp_terms = list(temp_terms for temp_terms,
-                      _ in itertools.groupby(temp_terms))
+    temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
 
     temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None,
                       _make_binary(x), None) for x in temp_terms]
@@ -549,8 +535,10 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 
 
 if __name__ == "__main__":
-    quinemc(42589768824798729982179, True, True)
+    #quinemc(42589768824798729982179, True, True)
+    #print(canonical(9927465))
     #quinemc(638, 1, 1)
+    quinemc(canonical(27856))
     # quinemc(to_cdnf("A + FI"))
     #import doctest
     # doctest.testmod()
