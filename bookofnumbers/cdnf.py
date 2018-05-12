@@ -86,7 +86,7 @@ quinemc(myitem, highorder_a=True, full_results=False):
 import re
 import itertools
 import string
-import pprint as pp
+# import pprint as pp
 # import line_profiler
 from collections import namedtuple, defaultdict
 from operator import attrgetter, itemgetter
@@ -118,7 +118,7 @@ Term = namedtuple(
 # @coverage
 
 
-def canonical(x, highorder_a=True, includef=False):
+def canonical(item, highorder_a=True, includef=False):
     '''
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
 
@@ -131,10 +131,10 @@ def canonical(x, highorder_a=True, includef=False):
     includef (boolean): When True will append "F(x) = " before the result string
 
     '''
-    if not isinstance(x, int):
-        return ValueError(x, "canonical(x) requires an integer.")
+    if not isinstance(item, int):
+        return ValueError(item, "canonical(x) requires an integer.")
 
-    binary = format(x, 'b')
+    binary = format(item, 'b')
     binary = binary[::-1]
     # No. of letters needed is equal to the length of the binary number representing
     # the length of our number. (E.g. len('11111000') == (8 - 1) == 0b111. len('111') = 3,
@@ -153,26 +153,26 @@ def canonical(x, highorder_a=True, includef=False):
     result = ' + '.join(miniterms)
 
     if includef is True:
-        result = "f(" + str(x) + ") = " + result
+        result = "f(" + str(item) + ") = " + result
     return result
 
-def _minterms_(m, highorder_a):
+def _minterms_(fixme, highorder_a):
     alpha = sorted(string.ascii_letters)
     result = ''
     if highorder_a is False:
-        m = m[::-1]
+        fixme = fixme[::-1]
 
     # convert 010 to A'BC'
-    for i, x in enumerate(m):
+    for i, fixme in enumerate(fixme):
         result += alpha[i]
-        if x == '0':
+        if fixme == '0':
             result += "'"
     return result
 
 
 # --- END OF Canonical functions ---
 # --- START: Go from Minform to Canonical ---
-def to_cdnf(min_form):
+def to_cdnf(min_form, ranged=False):
     """ CONVERT BACK
     --make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
     --find greatest letter (D)
@@ -189,20 +189,22 @@ def to_cdnf(min_form):
     else:
         return ValueError(min_form, "Not valid input")
 
-    temp_letters = sorted(set("".join(min_form)))
-    temp_letters = [letter for letter in temp_letters if letter is not "'"]
-    letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1]) + 1)]
-
-    min_form = [re.findall("([A-Za-z]'*)", x) for x in min_form]  # list of list of letters
+    letters = ("".join(min_form)).replace("'", "")
+    if ranged:
+        last_letter = max(letters)
+        first_letter = min(letters)
+        letters = [chr(i) for i in range(ord(first_letter), ord(last_letter) + 1)]
+    # list of list of letters
+    min_form = [re.findall("([A-Za-z]'*)", term_letters) for term_letters in min_form]
 
     final = []
-    for x in min_form:
-        missing_letters = set("".join(x))
-        missing_letters.discard("'")
+    for term_letters in min_form:
+        missing_letters = set(("".join(term_letters)).replace("'", ""))
         missing_list = list(set(letters) - set(missing_letters))
         missing_list = [[q, q + "'"] for q in missing_list]
         missing_combos = list(itertools.product(*missing_list))
-        final.extend(["".join(sorted(set(x) | set(missing))) for missing in missing_combos])
+        final.extend(["".join(sorted(set(term_letters) | set(missing)))
+                      for missing in missing_combos])
 
     result = sorted(list(set(final)), reverse=True)
     result = ' + '.join(result)
@@ -371,7 +373,7 @@ def _create_new_terms_(orig_term_list, gen):
     sources = []  # avoid duplicate merges
     result = []
 
-    working_list = [x for x in orig_term_list if x.generation == gen]
+    working_list = [xterms for xterms in orig_term_list if xterms.generation == gen]
     working_list = [list(group) for key, group in
                     itertools.groupby(working_list, itemgetter(2))]
     # last_ones = len(working_list) - 1
@@ -379,25 +381,25 @@ def _create_new_terms_(orig_term_list, gen):
 
     while current < len(working_list) - 1:
         first_list, second_list = working_list[current], working_list[current + 1]
-        for x in first_list:
-            for y in second_list:
-                sym_set = y.termset.symmetric_difference(x.termset)
+        for xterms in first_list:
+            for yterms in second_list:
+                sym_set = yterms.termset.symmetric_difference(xterms.termset)
                 # pp.pprint(sym_set)
 
                 # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
                 if (len(sym_set) == 2 and
                         sym_set.pop().replace("'", "") == sym_set.pop().replace("'", "")):
-                    used_dict[x.row] = True
-                    used_dict[y.row] = True
-                    new_term = y.termset.intersection(x.termset)
-                    source = sorted(y.source + x.source)
+                    used_dict[xterms.row] = True
+                    used_dict[yterms.row] = True
+                    new_term = yterms.termset.intersection(xterms.termset)
+                    source = sorted(yterms.source + xterms.source)
                     if source not in sources:
                         sources.append(source)
                         result.append(Term(new_term, False, len(new_term.intersection(
                             set(string.ascii_letters))), source, (gen + 1), None, None, None))
         current += 1
     result = sorted(result, key=attrgetter('ones'))
-    for idx, item in enumerate(result):
+    for idx, _ in enumerate(result):
         result[idx] = result[idx]._replace(row=len(orig_term_list) + idx)
 
     # set used terms as used in orig_term_list
@@ -422,8 +424,8 @@ def _implicants_(term_list):
     possible_terms = defaultdict(list)
     list_of_sources = []
 
-    for x in [zed for zed in term_list if zed.used is False]:
-        list_of_sources += list(itertools.chain(x.source))
+    for sources in [zed for zed in term_list if zed.used is False]:
+        list_of_sources += list(itertools.chain(sources.source))
 
     required = [x for x in list_of_sources if list_of_sources.count(x) == 1]
     keep_columns = _get_columns_(term_list, required)
@@ -460,16 +462,16 @@ def _get_columns_(term_list, required):
     ignore = []
     keep = []
 
-    for j, x in [(i, k) for i, k in enumerate(term_list) if k.used is False]:
+    for j, fixme in [(i, k) for i, k in enumerate(term_list) if k.used is False]:
         # Find Terms in "needed" that exist in required, add them to the final result,
         # and add that Term's sources to the "columns" we can now ignore (already covered
         # terms)
-        if len((set(required) & set(x.source))) >= 1:
-            term_list[j] = x._replace(final="Required")
-            ignore += itertools.chain(x.source)
+        if len((set(required) & set(fixme.source))) >= 1:
+            term_list[j] = fixme._replace(final="Required")
+            ignore += itertools.chain(fixme.source)
         # Otherwise add the sources to our list of "columns" we need to keep
         else:
-            keep += itertools.chain(x.source)
+            keep += itertools.chain(fixme.source)
 
     # create a list of the remaining 1st gen terms that we still need to find minterms for
     keep = list(set(keep) - set(ignore))
@@ -502,7 +504,7 @@ def _check_combinations_(find_dict, term_list, keep_columns):
     min_length = 0
     break_count = 0
 
-    for x in range(2, (len(find_dict) + 1)):
+    for fixme in range(2, (len(find_dict) + 1)):
         # adding more and more combinations isnt likely to improve (shorten) lenght of result
         # so once matches are found we limit how many more sets of combinations we check
         # there may however be funky corner cases
@@ -511,7 +513,7 @@ def _check_combinations_(find_dict, term_list, keep_columns):
         else:
             if matches:
                 break_count += 1
-        for items in itertools.combinations(find_dict.keys(), x):
+        for items in itertools.combinations(find_dict.keys(), fixme):
             combined_sources = set()
             temp_count = 0
             for idx in items:
@@ -538,7 +540,8 @@ if __name__ == "__main__":
     #quinemc(42589768824798729982179, True, True)
     #print(canonical(9927465))
     #quinemc(638, 1, 1)
-    quinemc(canonical(27856))
+    to_cdnf("B'CD + A'C'D' + A'B'D'")
+    #quinemc(canonical(27856))
     # quinemc(to_cdnf("A + FI"))
     #import doctest
     # doctest.testmod()
