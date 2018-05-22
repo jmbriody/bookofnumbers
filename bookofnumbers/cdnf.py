@@ -156,16 +156,16 @@ def canonical(item, highorder_a=True, includef=False):
         result = "f(" + str(item) + ") = " + result
     return result
 
-def _minterms_(fixme, highorder_a):
+def _minterms_(terms, highorder_a):
     alpha = sorted(string.ascii_letters)
     result = ''
     if highorder_a is False:
-        fixme = fixme[::-1]
+        terms = terms[::-1]
 
     # convert 010 to A'BC'
-    for i, fixme in enumerate(fixme):
+    for i, terms in enumerate(terms):
         result += alpha[i]
-        if fixme == '0':
+        if terms == '0':
             result += "'"
     return result
 
@@ -253,14 +253,14 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     if (isinstance(myitem, list) and
             len(myitem) == 2 and
             all(isinstance(part, list) for part in myitem)):
-        cdnf = convert_to_terms(myitem[0], highorder_a)
+        cdnf = _convert_to_terms_(myitem[0], highorder_a)
         if all(isinstance(i, int) for i in myitem[1]):
             dont_care = myitem[1]
         elif all(isinstance(a, str) for a in myitem[1]): # don't care are terms e.g ABC'D
             temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in myitem[1]]
             dont_care = [int(_make_binary(z), 2) for z in temp_terms]
     else:
-        cdnf = convert_to_terms(myitem, highorder_a)
+        cdnf = _convert_to_terms_(myitem, highorder_a)
         dont_care = None
 
     if cdnf is None:
@@ -276,7 +276,7 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     else:
         return _minimize_(cdnf)[0]
 
-def convert_to_terms(item_in, highorder_a):
+def _convert_to_terms_(item_in, highorder_a):
     result = item_in
     if isinstance(item_in, int):
         result = canonical(item_in, highorder_a).split(' + ')
@@ -298,7 +298,7 @@ def _minimize_(cdnf):
     """
     done = False
     current_generation = 1
-    # Step 1: take terms from the caononical form and putting them into generation one
+    # Step 1: take terms from the canonical form and putting them into generation one
     # of our term_list
     term_list = _create_first_generation_(cdnf)
 
@@ -384,8 +384,6 @@ def _create_new_terms_(orig_term_list, gen):
         for xterms in first_list:
             for yterms in second_list:
                 sym_set = yterms.termset.symmetric_difference(xterms.termset)
-                # pp.pprint(sym_set)
-
                 # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
                 if (len(sym_set) == 2 and
                         sym_set.pop().replace("'", "") == sym_set.pop().replace("'", "")):
@@ -446,8 +444,7 @@ def _implicants_(term_list):
     # if a single term doesn't cover the remaining 1st gen items start looking
     # for combinations of Terms that will fit the bill.
     if not finished:
-        possible_terms = _check_combinations_(
-            find_dict, term_list, keep_columns)
+        possible_terms = _check_combinations_(find_dict, term_list, keep_columns)
 
     return possible_terms
 
@@ -462,16 +459,16 @@ def _get_columns_(term_list, required):
     ignore = []
     keep = []
 
-    for j, fixme in [(i, k) for i, k in enumerate(term_list) if k.used is False]:
+    for index, term in [(i, v) for i, v in enumerate(term_list) if v.used is False]:
         # Find Terms in "needed" that exist in required, add them to the final result,
         # and add that Term's sources to the "columns" we can now ignore (already covered
         # terms)
-        if len((set(required) & set(fixme.source))) >= 1:
-            term_list[j] = fixme._replace(final="Required")
-            ignore += itertools.chain(fixme.source)
+        if len((set(required) & set(term.source))) >= 1:
+            term_list[index] = term._replace(final="Required")
+            ignore += itertools.chain(term.source)
         # Otherwise add the sources to our list of "columns" we need to keep
         else:
-            keep += itertools.chain(fixme.source)
+            keep += itertools.chain(term.source)
 
     # create a list of the remaining 1st gen terms that we still need to find minterms for
     keep = list(set(keep) - set(ignore))
@@ -505,7 +502,7 @@ def _check_combinations_(find_dict, term_list, keep_columns):
     break_count = 0
 
     for fixme in range(2, (len(find_dict) + 1)):
-        # adding more and more combinations isnt likely to improve (shorten) lenght of result
+        # adding more and more combinations isnt likely to improve (shorten) length of result
         # so once matches are found we limit how many more sets of combinations we check
         # there may however be funky corner cases
         if break_count >= 2:
