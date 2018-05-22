@@ -25,6 +25,10 @@ def test_quin():
 
     assert to_cdnf("B'CD + A'C'D' + A'B'D'") == "AB'CD + A'BC'D' + A'B'CD' + A'B'CD + A'B'C'D'"
     assert to_cdnf(["B'CD", "A'C'D'", "A'B'D'"]) == "AB'CD + A'BC'D' + A'B'CD' + A'B'CD + A'B'C'D'"
+    assert to_cdnf("C + A") == "AC' + AC + A'C"
+    assert to_cdnf("C + A", 1) == "ABC' + ABC + AB'C' + AB'C + A'BC + A'B'C"
+    assert to_cdnf("ry + t") == "rty' + rty + rt'y + r'ty' + r'ty"
+
     assert isinstance(to_cdnf(2077), ValueError)
 
     assert isinstance(quinemc(canon_string_error), ValueError)

@@ -86,7 +86,7 @@ quinemc(myitem, highorder_a=True, full_results=False):
 import re
 import itertools
 import string
-import pprint as pp
+# import pprint as pp
 # import line_profiler
 from collections import namedtuple, defaultdict
 from operator import attrgetter, itemgetter
@@ -118,7 +118,7 @@ Term = namedtuple(
 # @coverage
 
 
-def canonical(x, highorder_a=True, includef=False):
+def canonical(item, highorder_a=True, includef=False):
     '''
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
 
@@ -131,12 +131,10 @@ def canonical(x, highorder_a=True, includef=False):
     includef (boolean): When True will append "F(x) = " before the result string
 
     '''
-    if isinstance(x, int):
-        pass
-    else:
-        return ValueError(x, "canonical(x) requires an integer.")
+    if not isinstance(item, int):
+        return ValueError(item, "canonical(x) requires an integer.")
 
-    binary = format(x, 'b')
+    binary = format(item, 'b')
     binary = binary[::-1]
     # No. of letters needed is equal to the length of the binary number representing
     # the length of our number. (E.g. len('11111000') == (8 - 1) == 0b111. len('111') = 3,
@@ -147,8 +145,7 @@ def canonical(x, highorder_a=True, includef=False):
 
     # Funky formatter: essentially `format('10', '05b')` to get 00010--i.e. a binary equal to
     # the length of letters for each bit position that equals 1 in our input
-    indexes = [(format(i.start(), '0' + str(letters) + 'b'))
-               for i in re.finditer('1', binary)]
+    indexes = [(format(i.start(), '0' + str(letters) + 'b')) for i in re.finditer('1', binary)]
 
     miniterms = [_minterms_(m, highorder_a) for m in indexes[::-1]]
     miniterms = sorted(miniterms, reverse=True)
@@ -156,29 +153,26 @@ def canonical(x, highorder_a=True, includef=False):
     result = ' + '.join(miniterms)
 
     if includef is True:
-        result = "f(" + str(x) + ") = " + result
+        result = "f(" + str(item) + ") = " + result
     return result
 
-# @coverage
-
-
-def _minterms_(m, highorder_a):
+def _minterms_(terms, highorder_a):
     alpha = sorted(string.ascii_letters)
     result = ''
     if highorder_a is False:
-        m = m[::-1]
+        terms = terms[::-1]
 
     # convert 010 to A'BC'
-    for i, x in enumerate(m):
+    for i, terms in enumerate(terms):
         result += alpha[i]
-        if x == '0':
+        if terms == '0':
             result += "'"
     return result
 
 
 # --- END OF Canonical functions ---
 # --- START: Go from Minform to Canonical ---
-def to_cdnf(min_form):
+def to_cdnf(min_form, ranged=False):
     """ CONVERT BACK
     --make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
     --find greatest letter (D)
@@ -187,17 +181,7 @@ def to_cdnf(min_form):
         missing_combos = list(itertools.product(*missing_list)
     -- merge them
         final.append([set(term) | set(missing) for missing in missing_combos])
-
-    -----------
-    final = []
-    terms = [('A', "B'"), ("C'", "D'")]
-    create dictionary for all letters A --> ["A", "A'"]; B --> ["B", "B'"]
-    for t in terms:
-        missing_list-->all items in dict not represent in t (e.g. [["C", "C'"], ["D", "D'"]])
-        missing_combos = list(itertools.product(*missing_list)
-        final.append([set(term) | set(missing) for missing in missing_combos])
     """
-
     if isinstance(min_form, str):
         min_form = list(re.split(r"[^a-zA-Z']+", min_form))
     elif isinstance(min_form, list):
@@ -205,21 +189,21 @@ def to_cdnf(min_form):
     else:
         return ValueError(min_form, "Not valid input")
 
-    temp_letters = sorted(set("".join(min_form)))
-    temp_letters = [l for l in temp_letters if l is not "'"]
-    letters = [chr(i) for i in range(ord("A"), ord(temp_letters[-1]) + 1)]
-
-    min_form = [re.findall("([A-Za-z]'*)", x)
-                for x in min_form]  # list of list of letters
+    letters = ("".join(min_form)).replace("'", "")
+    if ranged:
+        last_letter = max(letters)
+        first_letter = min(letters)
+        letters = [chr(i) for i in range(ord(first_letter), ord(last_letter) + 1)]
+    # list of list of letters
+    min_form = [re.findall("([A-Za-z]'*)", term_letters) for term_letters in min_form]
 
     final = []
-    for x in min_form:
-        missing_letters = set("".join(x))
-        missing_letters.discard("'")
+    for term_letters in min_form:
+        missing_letters = set(("".join(term_letters)).replace("'", ""))
         missing_list = list(set(letters) - set(missing_letters))
         missing_list = [[q, q + "'"] for q in missing_list]
         missing_combos = list(itertools.product(*missing_list))
-        final.extend(["".join(sorted(set(x) | set(missing)))
+        final.extend(["".join(sorted(set(term_letters) | set(missing)))
                       for missing in missing_combos])
 
     result = sorted(list(set(final)), reverse=True)
@@ -263,15 +247,24 @@ def quinemc(myitem, highorder_a=True, full_results=False):
 
     Invalid input will return a ValueError (e.g. quinemc(["A'BC", "AB"]) is invalid
     because second term must contain a "C".
+
+    Add code for doing dont_care items
     '''
-    if isinstance(myitem, int):
-        cdnf = canonical(myitem, highorder_a).split(' + ')
-    elif isinstance(myitem, str):
-        cdnf = re.split(r"[^a-zA-Z']+", myitem)
-    elif isinstance(myitem, list):
-        cdnf = myitem
+    if (isinstance(myitem, list) and
+            len(myitem) == 2 and
+            all(isinstance(part, list) for part in myitem)):
+        cdnf = _convert_to_terms_(myitem[0], highorder_a)
+        if all(isinstance(i, int) for i in myitem[1]):
+            dont_care = myitem[1]
+        elif all(isinstance(a, str) for a in myitem[1]): # don't care are terms e.g ABC'D
+            temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in myitem[1]]
+            dont_care = [int(_make_binary(z), 2) for z in temp_terms]
     else:
-        return ValueError(myitem, "Not valid input")
+        cdnf = _convert_to_terms_(myitem, highorder_a)
+        dont_care = None
+
+    if cdnf is None:
+        return ValueError(myitem, "Invalid input")
 
     test_string = "".join(sorted(re.sub("'", '', cdnf[0])))
     for item in cdnf:
@@ -283,6 +276,18 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     else:
         return _minimize_(cdnf)[0]
 
+def _convert_to_terms_(item_in, highorder_a):
+    result = item_in
+    if isinstance(item_in, int):
+        result = canonical(item_in, highorder_a).split(' + ')
+    elif isinstance(item_in, str):
+        result = re.split(r"[^a-zA-Z']+", item_in)
+    elif isinstance(item_in, list) and all(isinstance(x, str) for x in item_in):
+        result = item_in
+    else:
+        result = None
+
+    return result
 
 # @coverage
 def _minimize_(cdnf):
@@ -293,7 +298,7 @@ def _minimize_(cdnf):
     """
     done = False
     current_generation = 1
-    # Step 1: take terms from the caononical form and putting them into generation one
+    # Step 1: take terms from the canonical form and putting them into generation one
     # of our term_list
     term_list = _create_first_generation_(cdnf)
 
@@ -330,8 +335,7 @@ def _create_first_generation_(terms):
                   for x in terms]  # Convert to list of sets
 
     # Remove duplicate terms if called with something like quinemc("ABCD + CDBA + ABC'D + DC'AB")
-    temp_terms = list(temp_terms for temp_terms,
-                      _ in itertools.groupby(temp_terms))
+    temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
 
     temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None,
                       _make_binary(x), None) for x in temp_terms]
@@ -341,8 +345,8 @@ def _create_first_generation_(terms):
     return temp_list
 
 
-def _make_binary(term):
-    new_term = "".join(sorted(list(term)))
+def _make_binary(new_term):
+    new_term = "".join(sorted(list(new_term)))
     new_term = re.sub("[A-Za-z]'", "0", new_term)
     new_term = re.sub("[A-Za-z]", "1", new_term)
     return new_term
@@ -369,7 +373,7 @@ def _create_new_terms_(orig_term_list, gen):
     sources = []  # avoid duplicate merges
     result = []
 
-    working_list = [x for x in orig_term_list if x.generation == gen]
+    working_list = [xterms for xterms in orig_term_list if xterms.generation == gen]
     working_list = [list(group) for key, group in
                     itertools.groupby(working_list, itemgetter(2))]
     # last_ones = len(working_list) - 1
@@ -377,24 +381,23 @@ def _create_new_terms_(orig_term_list, gen):
 
     while current < len(working_list) - 1:
         first_list, second_list = working_list[current], working_list[current + 1]
-        for x in first_list:
-            for y in second_list:
-                sym_set = y.termset.symmetric_difference(x.termset)
-                # pp.pprint(sym_set)
-
+        for xterms in first_list:
+            for yterms in second_list:
+                sym_set = yterms.termset.symmetric_difference(xterms.termset)
                 # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
-                if len(sym_set) == 2 and sym_set.pop().replace("'", "") == sym_set.pop().replace("'", ""):
-                    used_dict[x.row] = True
-                    used_dict[y.row] = True
-                    new_term = y.termset.intersection(x.termset)
-                    source = sorted(y.source + x.source)
+                if (len(sym_set) == 2 and
+                        sym_set.pop().replace("'", "") == sym_set.pop().replace("'", "")):
+                    used_dict[xterms.row] = True
+                    used_dict[yterms.row] = True
+                    new_term = yterms.termset.intersection(xterms.termset)
+                    source = sorted(yterms.source + xterms.source)
                     if source not in sources:
                         sources.append(source)
                         result.append(Term(new_term, False, len(new_term.intersection(
                             set(string.ascii_letters))), source, (gen + 1), None, None, None))
         current += 1
     result = sorted(result, key=attrgetter('ones'))
-    for idx, item in enumerate(result):
+    for idx, _ in enumerate(result):
         result[idx] = result[idx]._replace(row=len(orig_term_list) + idx)
 
     # set used terms as used in orig_term_list
@@ -419,8 +422,8 @@ def _implicants_(term_list):
     possible_terms = defaultdict(list)
     list_of_sources = []
 
-    for x in [zed for zed in term_list if zed.used is False]:
-        list_of_sources += list(itertools.chain(x.source))
+    for sources in [zed for zed in term_list if zed.used is False]:
+        list_of_sources += list(itertools.chain(sources.source))
 
     required = [x for x in list_of_sources if list_of_sources.count(x) == 1]
     keep_columns = _get_columns_(term_list, required)
@@ -441,8 +444,7 @@ def _implicants_(term_list):
     # if a single term doesn't cover the remaining 1st gen items start looking
     # for combinations of Terms that will fit the bill.
     if not finished:
-        possible_terms = _check_combinations_(
-            find_dict, term_list, keep_columns)
+        possible_terms = _check_combinations_(find_dict, term_list, keep_columns)
 
     return possible_terms
 
@@ -457,16 +459,16 @@ def _get_columns_(term_list, required):
     ignore = []
     keep = []
 
-    for j, x in [(i, k) for i, k in enumerate(term_list) if k.used is False]:
+    for index, term in [(i, v) for i, v in enumerate(term_list) if v.used is False]:
         # Find Terms in "needed" that exist in required, add them to the final result,
         # and add that Term's sources to the "columns" we can now ignore (already covered
         # terms)
-        if len((set(required) & set(x.source))) >= 1:
-            term_list[j] = x._replace(final="Required")
-            ignore += itertools.chain(x.source)
+        if len((set(required) & set(term.source))) >= 1:
+            term_list[index] = term._replace(final="Required")
+            ignore += itertools.chain(term.source)
         # Otherwise add the sources to our list of "columns" we need to keep
         else:
-            keep += itertools.chain(x.source)
+            keep += itertools.chain(term.source)
 
     # create a list of the remaining 1st gen terms that we still need to find minterms for
     keep = list(set(keep) - set(ignore))
@@ -499,8 +501,8 @@ def _check_combinations_(find_dict, term_list, keep_columns):
     min_length = 0
     break_count = 0
 
-    for x in range(2, (len(find_dict) + 1)):
-        # adding more and more combinations isnt likely to improve (shorten) lenght of result
+    for fixme in range(2, (len(find_dict) + 1)):
+        # adding more and more combinations isnt likely to improve (shorten) length of result
         # so once matches are found we limit how many more sets of combinations we check
         # there may however be funky corner cases
         if break_count >= 2:
@@ -508,13 +510,14 @@ def _check_combinations_(find_dict, term_list, keep_columns):
         else:
             if matches:
                 break_count += 1
-        for items in itertools.combinations(find_dict.keys(), x):
+        for items in itertools.combinations(find_dict.keys(), fixme):
             combined_sources = set()
             temp_count = 0
             for idx in items:
                 combined_sources.update(find_dict[idx].sourceSet)
                 temp_count += find_dict[idx].length
-            if set(keep_columns) == combined_sources and (min_length == 0 or temp_count <= min_length):
+            if (set(keep_columns) == combined_sources
+                    and (min_length == 0 or temp_count <= min_length)):
                 if (temp_count < min_length or min_length == 0):
                     del matches[:]
                     min_length = temp_count
@@ -531,8 +534,11 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 
 
 if __name__ == "__main__":
-    quinemc(42589768824798729982179, True, True)
+    #quinemc(42589768824798729982179, True, True)
+    #print(canonical(9927465))
     #quinemc(638, 1, 1)
+    to_cdnf("B'CD + A'C'D' + A'B'D'")
+    #quinemc(canonical(27856))
     # quinemc(to_cdnf("A + FI"))
     #import doctest
     # doctest.testmod()
