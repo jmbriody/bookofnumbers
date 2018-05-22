@@ -13,12 +13,12 @@ class CleanCommand(Command):
         os.system('rm -vrf ./build ./dist ./*.pyc ./*.tgz ./*.egg-info ./.tox')
 
 setup(
-    name='bookofnumbers',
-    description='Various simple number modules',
+    name='cdnf',
+    description='Canonincal Normal Form and Quine McCluskey',
     author='Jack Briody',
     author_email='jackbriody@gmail.com',
     license='MIT',
-    url='https://github.com/jmbriody/bookofnumbers',
+    url='https://github.com/jmbriody/cdnf',
     version="0.1.0",
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     keywords='algebra logic cdnf Quine McCluskey',

@@ -1,6 +1,6 @@
 import pytest
 from collections import namedtuple
-from bookofnumbers import *
+from cdnf import *
 
 
 def test_quin():
