@@ -249,19 +249,13 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     because second term must contain a "C".
 
     Add code for doing dont_care items
+
+    Takes int, str, or list of terms; dc--> 2 lists
     '''
-    if (isinstance(myitem, list) and
-            len(myitem) == 2 and
+    if not (isinstance(myitem, list) and len(myitem) == 2 and
             all(isinstance(part, list) for part in myitem)):
-        cdnf = _convert_to_terms_(myitem[0], highorder_a)
-        if all(isinstance(i, int) for i in myitem[1]):
-            dont_care = myitem[1]
-        elif all(isinstance(a, str) for a in myitem[1]): # don't care are terms e.g ABC'D
-            temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in myitem[1]]
-            dont_care = [int(_make_binary(z), 2) for z in temp_terms]
-    else:
-        cdnf = _convert_to_terms_(myitem, highorder_a)
-        dont_care = None
+        myitem = [myitem, None]
+    cdnf = _convert_to_terms_(myitem, highorder_a)
 
     if cdnf is None:
         return ValueError(myitem, "Invalid input")
@@ -272,25 +266,27 @@ def quinemc(myitem, highorder_a=True, full_results=False):
             return ValueError("Term: ", item, " doesn't match valid test ", test_string)
 
     if full_results:
-        return _minimize_(cdnf, dont_care)
+        return _minimize_(cdnf)
     else:
-        return _minimize_(cdnf, dont_care)[0]
+        return _minimize_(cdnf)[0]
 
 def _convert_to_terms_(item_in, highorder_a):
-    result = item_in
-    if isinstance(item_in, int):
-        result = canonical(item_in, highorder_a).split(' + ')
-    elif isinstance(item_in, str):
-        result = re.split(r"[^a-zA-Z']+", item_in)
-    elif isinstance(item_in, list) and all(isinstance(x, str) for x in item_in):
-        result = item_in
+    # need to deal with a list of ints e.g [4, 18, 27] for don't care items
+    # and converting don't care from second list
+    result = item_in[0]
+    if isinstance(result, int):
+        result = canonical(result, highorder_a).split(' + ')
+    elif isinstance(result, str):
+        result = re.split(r"[^a-zA-Z']+", result)
+    elif isinstance(result, list) and all(isinstance(x, str) for x in result):
+        result = result
     else:
         result = None
 
     return result
 
 # @coverage
-def _minimize_(cdnf, dont_care):
+def _minimize_(cdnf):
     """
     Basic driver for performing the over all minimization. Most of the "heavy" work
     is done in _implicants_()
