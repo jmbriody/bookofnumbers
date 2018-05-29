@@ -368,21 +368,24 @@ def _merge_terms_(term_list, gen):
 # @coverage
 # @profile
 def _create_new_terms_(orig_term_list, gen):
-    # Slow--see about numpy
+    # Takes a generation and puts it into a list of lists of terms grouped by the 
+    # number of "ones". 
+    # Then successively compares items in one list with items from the next list to
+    # find terms that can be merged
     used_dict = {}  # a dictionary for used items
     sources = []  # avoid duplicate merges
     result = []
 
     working_list = [xterms for xterms in orig_term_list if xterms.generation == gen]
     working_list = [list(group) for key, group in
-                    itertools.groupby(working_list, itemgetter(2))]
+                    itertools.groupby(working_list, attrgetter('ones'))]
     # last_ones = len(working_list) - 1
     current = 0
 
     while current < len(working_list) - 1:
-        first_list, second_list = working_list[current], working_list[current + 1]
-        for xterms in first_list:
-            for yterms in second_list:
+        # first_list, second_list = working_list[current], working_list[current + 1]
+        for xterms in working_list[current]:
+            for yterms in working_list[current + 1]:
                 sym_set = yterms.termset.symmetric_difference(xterms.termset)
                 # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
                 if (len(sym_set) == 2 and
@@ -537,7 +540,8 @@ if __name__ == "__main__":
     #quinemc(42589768824798729982179, True, True)
     #print(canonical(9927465))
     #quinemc(638, 1, 1)
-    to_cdnf("B'CD + A'C'D' + A'B'D'")
+    quinemc(to_cdnf("A + C", 1))
+    #to_cdnf("B'CD + A'C'D' + A'B'D'")
     #quinemc(canonical(27856))
     # quinemc(to_cdnf("A + FI"))
     #import doctest
