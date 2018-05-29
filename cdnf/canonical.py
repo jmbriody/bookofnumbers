@@ -113,7 +113,7 @@ from operator import attrgetter, itemgetter
 # quinemc(4222345678921334)) the number of permutations and comparisons grows pretty
 # large and can be slow.
 Term = namedtuple(
-    'Term', 'termset used ones source generation final binary row')
+    'Term', 'termset used ones source generation final binary row dontcare')
 
 # @coverage
 
@@ -272,9 +272,9 @@ def quinemc(myitem, highorder_a=True, full_results=False):
             return ValueError("Term: ", item, " doesn't match valid test ", test_string)
 
     if full_results:
-        return _minimize_(cdnf)
+        return _minimize_(cdnf, dont_care)
     else:
-        return _minimize_(cdnf)[0]
+        return _minimize_(cdnf, dont_care)[0]
 
 def _convert_to_terms_(item_in, highorder_a):
     result = item_in
@@ -290,7 +290,7 @@ def _convert_to_terms_(item_in, highorder_a):
     return result
 
 # @coverage
-def _minimize_(cdnf):
+def _minimize_(cdnf, dont_care):
     """
     Basic driver for performing the over all minimization. Most of the "heavy" work
     is done in _implicants_()
@@ -338,7 +338,7 @@ def _create_first_generation_(terms):
     temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
 
     temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None,
-                      _make_binary(x), None) for x in temp_terms]
+                      _make_binary(x), None, None) for x in temp_terms]
     temp_list = sorted(temp_list, key=attrgetter('ones'))
     for idx, item in enumerate(temp_list):
         temp_list[idx] = item._replace(source=[idx], row=idx)
@@ -368,8 +368,8 @@ def _merge_terms_(term_list, gen):
 # @coverage
 # @profile
 def _create_new_terms_(orig_term_list, gen):
-    # Takes a generation and puts it into a list of lists of terms grouped by the 
-    # number of "ones". 
+    # Takes a generation and puts it into a list of lists of terms grouped by the
+    # number of "ones".
     # Then successively compares items in one list with items from the next list to
     # find terms that can be merged
     used_dict = {}  # a dictionary for used items
@@ -397,7 +397,7 @@ def _create_new_terms_(orig_term_list, gen):
                     if source not in sources:
                         sources.append(source)
                         result.append(Term(new_term, False, len(new_term.intersection(
-                            set(string.ascii_letters))), source, (gen + 1), None, None, None))
+                            set(string.ascii_letters))), source, (gen + 1), None, None, None, None))
         current += 1
     result = sorted(result, key=attrgetter('ones'))
     for idx, _ in enumerate(result):
@@ -408,7 +408,7 @@ def _create_new_terms_(orig_term_list, gen):
         current = orig_term_list[key]
         orig_term_list[key] = Term(current.termset, True, current.ones,
                                    current.source, current.generation, None,
-                                   current.binary, current.row)
+                                   current.binary, current.row, current.dontcare)
 
     return result
 
