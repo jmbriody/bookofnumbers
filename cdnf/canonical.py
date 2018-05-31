@@ -252,9 +252,10 @@ def quinemc(myitem, highorder_a=True, full_results=False):
 
     Takes int, str, or list of terms; dc--> 2 lists
     '''
-    if not (isinstance(myitem, list) and len(myitem) == 2 and
-            all(isinstance(part, list) for part in myitem)):
-        myitem = [myitem, None]
+    if (isinstance(myitem, list) and len(myitem) == 2 and isinstance(myitem[1], list)):
+        dont_care = _create_dont_care_(myitem[1])
+    else:
+        dont_care = None
     cdnf = _convert_to_terms_(myitem, highorder_a)
 
     if cdnf is None:
@@ -266,14 +267,23 @@ def quinemc(myitem, highorder_a=True, full_results=False):
             return ValueError("Term: ", item, " doesn't match valid test ", test_string)
 
     if full_results:
-        return _minimize_(cdnf)
+        return _minimize_(cdnf, dont_care)
     else:
-        return _minimize_(cdnf)[0]
+        return _minimize_(cdnf, dont_care)[0]
+
+def _create_dont_care_(dc):
+    if all(isinstance(i, string) for i in dc):
+        result = [int(_make_binary(x), 2) for x in dc]
+    elif all(isinstance(i, int) for i in dc):
+        result = dc
+    else:
+        result = None
+    return result
 
 def _convert_to_terms_(item_in, highorder_a):
     # need to deal with a list of ints e.g [4, 18, 27] for don't care items
     # and converting don't care from second list
-    result = item_in[0]
+    result = item_in
     if isinstance(result, int):
         result = canonical(result, highorder_a).split(' + ')
     elif isinstance(result, str):
@@ -286,7 +296,7 @@ def _convert_to_terms_(item_in, highorder_a):
     return result
 
 # @coverage
-def _minimize_(cdnf):
+def _minimize_(cdnf, dont_care):
     """
     Basic driver for performing the over all minimization. Most of the "heavy" work
     is done in _implicants_()
@@ -297,6 +307,11 @@ def _minimize_(cdnf):
     # Step 1: take terms from the canonical form and putting them into generation one
     # of our term_list
     term_list = _create_first_generation_(cdnf)
+
+    if dont_care is not None:
+        for idx, item in enumerate(term_list):
+            if int(item.binary, 2) in dont_care:
+                term_list[idx] = item._replace(dontcare = True)
 
     # Step 2: merge terms of each generation to create next generation until no more merges
     # are possible (_merge_terms_ and _create_new_tuples_)
@@ -535,8 +550,8 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 if __name__ == "__main__":
     #quinemc(42589768824798729982179, True, True)
     #print(canonical(9927465))
-    #quinemc(638, 1, 1)
-    quinemc(to_cdnf("A + C", 1))
+    quinemc(638, 1, 1)
+    #quinemc(to_cdnf("A + C", 1))
     #to_cdnf("B'CD + A'C'D' + A'B'D'")
     #quinemc(canonical(27856))
     # quinemc(to_cdnf("A + FI"))
