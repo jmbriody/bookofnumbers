@@ -254,9 +254,10 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     '''
     if (isinstance(myitem, list) and len(myitem) == 2 and isinstance(myitem[1], list)):
         dont_care = _create_dont_care_(myitem[1])
+        cdnf = _convert_to_terms_(myitem[0], highorder_a)
     else:
         dont_care = None
-    cdnf = _convert_to_terms_(myitem, highorder_a)
+        cdnf = _convert_to_terms_(myitem, highorder_a)
 
     if cdnf is None:
         return ValueError(myitem, "Invalid input")
@@ -272,7 +273,7 @@ def quinemc(myitem, highorder_a=True, full_results=False):
         return _minimize_(cdnf, dont_care)[0]
 
 def _create_dont_care_(dc):
-    if all(isinstance(i, string) for i in dc):
+    if all(isinstance(i, str) for i in dc):
         result = [int(_make_binary(x), 2) for x in dc]
     elif all(isinstance(i, int) for i in dc):
         result = dc
@@ -357,7 +358,8 @@ def _create_first_generation_(terms):
 
 
 def _make_binary(new_term):
-    new_term = "".join(sorted(list(new_term)))
+    if isinstance(new_term, set):
+        new_term = "".join(sorted(list(new_term)))
     new_term = re.sub("[A-Za-z]'", "0", new_term)
     new_term = re.sub("[A-Za-z]", "1", new_term)
     return new_term
@@ -550,7 +552,8 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 if __name__ == "__main__":
     #quinemc(42589768824798729982179, True, True)
     #print(canonical(9927465))
-    quinemc(638, 1, 1)
+    quinemc(["AB'CD' + AB'C'D' + AB'C'D + A'BCD' + A'BCD + A'BC'D' + A'BC'D + A'B'CD' + A'B'CD + A'B'C'D", ["AB'CD'"]])
+    # quinemc(638, 1, 1)
     #quinemc(to_cdnf("A + C", 1))
     #to_cdnf("B'CD + A'C'D' + A'B'D'")
     #quinemc(canonical(27856))
