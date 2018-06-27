@@ -254,9 +254,10 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     '''
     if (isinstance(myitem, list) and len(myitem) == 2 and isinstance(myitem[1], list)):
         dont_care = _create_dont_care_(myitem[1])
+        cdnf = _convert_to_terms_(myitem[0], highorder_a)
     else:
         dont_care = None
-    cdnf = _convert_to_terms_(myitem, highorder_a)
+        cdnf = _convert_to_terms_(myitem, highorder_a)
 
     if cdnf is None:
         return ValueError(myitem, "Invalid input")
@@ -272,7 +273,7 @@ def quinemc(myitem, highorder_a=True, full_results=False):
         return _minimize_(cdnf, dont_care)[0]
 
 def _create_dont_care_(dc):
-    if all(isinstance(i, string) for i in dc):
+    if all(isinstance(i, str) for i in dc):
         result = [int(_make_binary(x), 2) for x in dc]
     elif all(isinstance(i, int) for i in dc):
         result = dc
@@ -290,6 +291,11 @@ def _convert_to_terms_(item_in, highorder_a):
         result = re.split(r"[^a-zA-Z']+", result)
     elif isinstance(result, list) and all(isinstance(x, str) for x in result):
         result = result
+    elif isinstance(result, list) and all(isinstance(x, int) for x in result):
+        letters = len(format(max(result), 'b'))
+        temp_binary = [(format(items, '0' + str(letters) + 'b')) for items in result]
+        miniterms = [_minterms_(m, highorder_a) for m in temp_binary[::-1]]
+        result = sorted(miniterms, reverse=True)
     else:
         result = None
 
@@ -439,8 +445,11 @@ def _implicants_(term_list):
     for sources in [zed for zed in term_list if zed.used is False]:
         list_of_sources += list(itertools.chain(sources.source))
 
+    dont_cares = [item.row for item in term_list if item.dontcare and item.generation == 1]
+    list_of_sources = [val for val in list_of_sources if val not in dont_cares]
+
     required = [x for x in list_of_sources if list_of_sources.count(x) == 1]
-    keep_columns = _get_columns_(term_list, required)
+    keep_columns = _get_columns_(term_list, required, dont_cares)
 
     # if _get_columns_ ends with nothing in keep_columns it means essential prime implicants
     # are all that is needed so we are done
@@ -464,7 +473,7 @@ def _implicants_(term_list):
 
 
 # @coverage
-def _get_columns_(term_list, required):
+def _get_columns_(term_list, required, dont_cares):
     """
     term_list -- full list of terms
     required -- integers for terms that are essential prime implicants . . .
@@ -473,7 +482,7 @@ def _get_columns_(term_list, required):
     ignore = []
     keep = []
 
-    for index, term in [(i, v) for i, v in enumerate(term_list) if v.used is False]:
+    for index, term in [(i, v) for i, v in enumerate(term_list) if v.used is False and not v.dontcare]:
         # Find Terms in "needed" that exist in required, add them to the final result,
         # and add that Term's sources to the "columns" we can now ignore (already covered
         # terms)
@@ -483,7 +492,7 @@ def _get_columns_(term_list, required):
         # Otherwise add the sources to our list of "columns" we need to keep
         else:
             keep += itertools.chain(term.source)
-
+    ignore = ignore + dont_cares
     # create a list of the remaining 1st gen terms that we still need to find minterms for
     keep = list(set(keep) - set(ignore))
 
@@ -550,7 +559,10 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 if __name__ == "__main__":
     #quinemc(42589768824798729982179, True, True)
     #print(canonical(9927465))
-    quinemc(638, 1, 1)
+    #quinemc([24, 32, 2, 5, 7])
+    #quinemc(2046)
+    quinemc([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [4, 5]])
+    #quinemc(638, 1, 1)
     #quinemc(to_cdnf("A + C", 1))
     #to_cdnf("B'CD + A'C'D' + A'B'D'")
     #quinemc(canonical(27856))
