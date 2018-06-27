@@ -363,7 +363,8 @@ def _create_first_generation_(terms):
 
 
 def _make_binary(new_term):
-    new_term = "".join(sorted(list(new_term)))
+    if isinstance(new_term, set):
+        new_term = "".join(sorted(list(new_term)))
     new_term = re.sub("[A-Za-z]'", "0", new_term)
     new_term = re.sub("[A-Za-z]", "1", new_term)
     return new_term
@@ -563,6 +564,7 @@ if __name__ == "__main__":
     #quinemc(2046)
     quinemc([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [4, 5]])
     #quinemc(638, 1, 1)
+    # quinemc(638, 1, 1)
     #quinemc(to_cdnf("A + C", 1))
     #to_cdnf("B'CD + A'C'D' + A'B'D'")
     #quinemc(canonical(27856))
