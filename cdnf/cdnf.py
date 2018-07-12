@@ -83,6 +83,7 @@ quinemc(myitem, highorder_a=True, full_results=False):
 >>> result, term_list, possibles = quinemc(248, False, True)
 
 """
+
 import re
 import itertools
 import string
@@ -555,6 +556,16 @@ def _check_combinations_(find_dict, term_list, keep_columns):
                 possible_terms[idx].append(term_list[i])
 
     return possible_terms
+
+def result_to_int(res):
+    return sum(2**(int(x.binary, 2)) for x in res if x.generation is 1)
+
+#    bit_pos_list = [int(x.binary, 2) for x in res if x.generation is 1]
+#    result = 0
+#    for item in bit_pos_list:
+#        result += 2**item
+#
+#    return result
 
 
 if __name__ == "__main__":
