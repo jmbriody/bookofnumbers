@@ -60,10 +60,12 @@ full_results: In the default mode "False" only a string containing the minimized
     --possibles: A dictionary of possible results. A sparse few set of equations can be reduced to
     other equations of the same length. This is a dictionary of those possible alternatives for the
     occasional items where this occurs. For example with quinemc(743) all of ...
+    
     "B'C'D + A'B'D' + A'CD' + A'BD"
     "B'C'D + A'B'D' + A'C'D + A'BC",
     "B'C'D + A'B'D' + A'BC + A'BD",
     "B'C'D + A'B'C' + A'CD' + A'BD"
+    
     are equivalent reductions.
 
 ## Helper functions
