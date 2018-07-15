@@ -14,7 +14,7 @@ General format of results are:
     "AB" means A AND B
     "C'" is Not C
     "+" is Or
-So "AB + C'" is (A AND B) or (Not C)
+So "AB + C'" is (A AND B) or (Not C) (quinemc(213))
 
 In the standard mode (highorder_a = True) A is the high order bit:
 
@@ -29,11 +29,12 @@ In the standard mode (highorder_a = True) A is the high order bit:
     7   |  1  |  1  |  0      1     ABC'
     8   |  1  |  1  |  1      1     ABC
 
-When highorder_a is False A would be the low order bit for 248.
+When highorder_a is False A would be the low order bit for 248. (So the table above would have
+BP | C | B | A with terms of ABC', A'B'C, AB'C, A'BC, ABC)
 
 Three primary user functions are:
 
-caononical(x, highorder_a=False, includef=False):
+caononical(item, highorder_a=True, includef=False):
     Simplest call is canonical(248) which will return the canonical boolean algebraic expression
     for "248". In the default setup A is the High Order bit (highorder_a=True)--i.e. 00001111.
     When highorder_a is False A will be the Low Order bit--i.e. 01010101. includef
@@ -47,8 +48,30 @@ caononical(x, highorder_a=False, includef=False):
 >>> canonical(248, True, True)
 "f(248) = ABC' + ABC + AB'C' + AB'C + A'BC"
 
-to_cdnf(x):
+to_cdnf(min_form, ranged=False):
+    Takes a "minimized" algebraic function and returns **a** CDNF version for that function.
 
+    min_form -- String like "A + BD'"
+    ranged -- boolean. When "True" will fill in "missing" letters.
+
+>>> to_cdnf("A + BD'")
+"ABD' + ABD + AB'D' + AB'D + A'BD'"
+>>> to_cdnf("A + BD'", ranged=True) # Note the "C's" are added
+"ABCD' + ABCD + ABC'D' + ABC'D + AB'CD' + AB'CD + AB'C'D' + AB'C'D + A'BCD' + A'BC'D'"
+>>> to_cdnf("r + su'") # no "t"
+"rsu' + rsu + rs'u' + rs'u + r'su'"
+>>> to_cdnf("r + su'", ranged=True) # "t" added
+"rstu' + rstu + rst'u' + rst'u + rs'tu' + rs'tu + rs't'u' + rs't'u + r'stu' + r'st'u'"
+
+    **NOTE** Doing "ranged=True" for a huge gap like `to_cdnf("A + Z", ranged=True)` will
+    likely bring your computer to a crashing halt. `to_cdnf("A + I", ranged=True)` is 384 terms long
+    `to_cdnf("A + J", ranged=True)` is 768 terms and so on. So "A + Z" ends up containing
+    50,000,000+ terms. In a similar fashion doing something like `quinemc(to_cdnf("A + Q",
+    ranged=True))` will likely cause the universe to implode. With 384 terms the "ranged" "A + I"
+    takes about 11,000 reductions in quinemc() to get back to "A + I", "A + J" takes 32,000.
+
+    In Short: This code is not meant to land stuff on the moon or run nuclear power plants. If you
+    do unwise things with it you will be rebooting your machine.
 
 quinemc(myitem, highorder_a=True, full_results=False):
     Short for Quinne-McCluskey algorithm:
@@ -63,12 +86,17 @@ quinemc(myitem, highorder_a=True, full_results=False):
     highorder_a: Same as for canonical. Only has any affect if "myitem" is an int.
 
     full_results: In the default mode "False" only a string containing the minimized function is
-    returned. When True a list of various data structures is returned.
+    returned. When True three items are returned:
     --result: Minimized expression
     --term_list: List of Named Tuples "termset" of all terms used in the reduction/minimize process
-    --possibles: A dictionary of possible minterms when the essential prime implicants do not cover
-    the whole canonical form. Essentially items generated using Petrick's Method that would create a
-    smaller form--items may be "longer" than the resulting minimized form.
+    --possibles: A dictionary of possible results. A sparse few set of equations can be reduced to
+    other equations of the same length. This is a dictionary of those possible alternatives for the
+    occasional items where this occurs. For example with quinemc(743) all of ...
+    "B'C'D + A'B'D' + A'CD' + A'BD"
+    "B'C'D + A'B'D' + A'C'D + A'BC",
+    "B'C'D + A'B'D' + A'BC + A'BD",
+    "B'C'D + A'B'C' + A'CD' + A'BD"
+    are equivalent reductions.
 
 >>> quinemc(248)
 'BC + A'
@@ -80,17 +108,37 @@ quinemc(myitem, highorder_a=True, full_results=False):
 'C + AB'
 >>> quinemc("rts + r'ts + rt's + r't's + rts'")
 's + rt'
->>> result, term_list, possibles = quinemc(248, False, True)
+>>> result, term_list, possibles = quinemc(743, True, True)
+result == "B'C'D + A'CD' + A'BD + A'B'D'"
+
+HELPER FUNCTIONS:
+Currently have two additional functions that could be useful for post processing when using
+`r, t, p = quinemc(SOMETHING, full_results=True)`
+
+result_to_int(t):
+    If you run `r, t, p = quinemc(to_cdnf("B'C'D + A'CD' + A'BD + A'B'D'"), full_results=True)`
+    result_to_int(t) will equal 743
+
+alternatives(t, p):
+    Similarly, running `r, t, p = quinemc(to_cdnf("B'C'D + A'CD' + A'BD + A'B'D'"),
+    full_results=True)`, then alternatives(t, p) will provide a list of equivalent reduced
+    forms. (Majority of items do **not** have alternatives 743 just happens to have some).
+    In this case (for 743) the main result (r) is "B'C'D + A'CD' + A'BD + A'B'D'"
+    alternatives(t,p) is . . .
+    ["B'C'D + A'B'D' + A'CD' + A'BD",
+     "B'C'D + A'B'D' + A'C'D + A'BC",
+     "B'C'D + A'B'D' + A'BC + A'BD",
+     "B'C'D + A'B'C' + A'CD' + A'BD"]
+
+    Running `to_cdnf()` on any of those options will return the same CDNF as canonical(743)
 
 """
+
 import re
 import itertools
 import string
-# import pprint as pp
-# import line_profiler
 from collections import namedtuple, defaultdict
-from operator import attrgetter, itemgetter
-#from profilehooks import coverage, profile
+from operator import attrgetter
 
 # Term is a namedtuple used by the Quin-McCluskey reduction portion of the code.
 # A list of Terms is used for the minimize process and another list is used for
@@ -104,6 +152,9 @@ from operator import attrgetter, itemgetter
 # --final: (None|Required|Added). "None"--default setting; term isn't used in reduced
 #       form. "Required"--terms that are required for the reduced form. "Added"--
 #       terms that complete the reduced form using Petrick's method.
+# --binary: first generation only--binary representation of the term
+# --row: essentially a row index
+# --dontcare: first generation only--if the term will be ignored in the reduction
 #
 # For minimize/reduction items in the latest generation are compared. With in a
 # generation only terms where "ones" differs by 1 can be merged/minimized.
@@ -113,9 +164,7 @@ from operator import attrgetter, itemgetter
 # quinemc(4222345678921334)) the number of permutations and comparisons grows pretty
 # large and can be slow.
 Term = namedtuple(
-    'Term', 'termset used ones source generation final binary row')
-
-# @coverage
+    'Term', 'termset used ones source generation final binary row dontcare')
 
 
 def canonical(item, highorder_a=True, includef=False):
@@ -123,7 +172,7 @@ def canonical(item, highorder_a=True, includef=False):
     Takes an integer and returns the boolean algebra canonical disjunctive normal form.
 
     Arguments:
-    x (integer): number to convert to a canonical boolean expression.
+    item (integer): number to convert to a canonical boolean expression.
 
     highorder_a (boolean): When "True" (default) A is the high order bit. When False A is
     the low order bit.
@@ -137,7 +186,7 @@ def canonical(item, highorder_a=True, includef=False):
     binary = format(item, 'b')
     binary = binary[::-1]
     # No. of letters needed is equal to the length of the binary number representing
-    # the length of our number. (E.g. len('11111000') == (8 - 1) == 0b111. len('111') = 3,
+    # the length of our number. (E.g. for 248--len('11111000') == (8 - 1) == 0b111. len('111') = 3,
     # so we will need A, B, C.
     letters = len(format(len(binary) - 1, 'b'))
     if letters == 1:
@@ -171,7 +220,6 @@ def _minterms_(terms, highorder_a):
 
 
 # --- END OF Canonical functions ---
-# --- START: Go from Minform to Canonical ---
 def to_cdnf(min_form, ranged=False):
     """ CONVERT BACK
     --make tuples of current terms [('A', "B'"), ("C'", "D'")] -- terms
@@ -212,9 +260,6 @@ def to_cdnf(min_form, ranged=False):
     return result
 # --- END: Go from Minform to Canonical ---
 
-# @coverage
-
-
 def quinemc(myitem, highorder_a=True, full_results=False):
     '''Short for Quinn-McCluskey algorithm
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
@@ -249,19 +294,15 @@ def quinemc(myitem, highorder_a=True, full_results=False):
     because second term must contain a "C".
 
     Add code for doing dont_care items
+
+    Takes int, str, or list of terms; dc--> 2 lists
     '''
-    if (isinstance(myitem, list) and
-            len(myitem) == 2 and
-            all(isinstance(part, list) for part in myitem)):
+    if isinstance(myitem, list) and len(myitem) == 2 and isinstance(myitem[1], list):
+        dont_care = _create_dont_care_(myitem[1])
         cdnf = _convert_to_terms_(myitem[0], highorder_a)
-        if all(isinstance(i, int) for i in myitem[1]):
-            dont_care = myitem[1]
-        elif all(isinstance(a, str) for a in myitem[1]): # don't care are terms e.g ABC'D
-            temp_terms = [set(re.findall("([A-Za-z]'*)", x)) for x in myitem[1]]
-            dont_care = [int(_make_binary(z), 2) for z in temp_terms]
     else:
-        cdnf = _convert_to_terms_(myitem, highorder_a)
         dont_care = None
+        cdnf = _convert_to_terms_(myitem, highorder_a)
 
     if cdnf is None:
         return ValueError(myitem, "Invalid input")
@@ -272,25 +313,40 @@ def quinemc(myitem, highorder_a=True, full_results=False):
             return ValueError("Term: ", item, " doesn't match valid test ", test_string)
 
     if full_results:
-        return _minimize_(cdnf)
+        return _minimize_(cdnf, dont_care)
     else:
-        return _minimize_(cdnf)[0]
+        return _minimize_(cdnf, dont_care)[0]
+
+def _create_dont_care_(dontcare):
+    if all(isinstance(i, str) for i in dontcare):
+        result = [int(_make_binary(x), 2) for x in dontcare]
+    elif all(isinstance(i, int) for i in dontcare):
+        result = dontcare
+    else:
+        result = None
+    return result
 
 def _convert_to_terms_(item_in, highorder_a):
+    # need to deal with a list of ints e.g [4, 18, 27] for don't care items
+    # and converting don't care from second list
     result = item_in
-    if isinstance(item_in, int):
-        result = canonical(item_in, highorder_a).split(' + ')
-    elif isinstance(item_in, str):
-        result = re.split(r"[^a-zA-Z']+", item_in)
-    elif isinstance(item_in, list) and all(isinstance(x, str) for x in item_in):
-        result = item_in
+    if isinstance(result, int):
+        result = canonical(result, highorder_a).split(' + ')
+    elif isinstance(result, str):
+        result = re.split(r"[^a-zA-Z']+", result)
+    elif isinstance(result, list) and all(isinstance(x, str) for x in result):
+        result = result
+    elif isinstance(result, list) and all(isinstance(x, int) for x in result):
+        letters = len(format(max(result), 'b'))
+        temp_binary = [(format(items, '0' + str(letters) + 'b')) for items in result]
+        miniterms = [_minterms_(m, highorder_a) for m in temp_binary[::-1]]
+        result = sorted(miniterms, reverse=True)
     else:
         result = None
 
     return result
 
-# @coverage
-def _minimize_(cdnf):
+def _minimize_(cdnf, dont_care):
     """
     Basic driver for performing the over all minimization. Most of the "heavy" work
     is done in _implicants_()
@@ -301,6 +357,11 @@ def _minimize_(cdnf):
     # Step 1: take terms from the canonical form and putting them into generation one
     # of our term_list
     term_list = _create_first_generation_(cdnf)
+
+    if dont_care is not None:
+        for idx, item in enumerate(term_list):
+            if int(item.binary, 2) in dont_care:
+                term_list[idx] = item._replace(dontcare=True)
 
     # Step 2: merge terms of each generation to create next generation until no more merges
     # are possible (_merge_terms_ and _create_new_tuples_)
@@ -327,8 +388,6 @@ def _minimize_(cdnf):
 
     return result, term_list, possibles
 
-
-# @coverage
 def _create_first_generation_(terms):
     my_letters = set(sorted(string.ascii_letters))
     temp_terms = [set(re.findall("([A-Za-z]'*)", x))
@@ -338,21 +397,19 @@ def _create_first_generation_(terms):
     temp_terms = list(temp_terms for temp_terms, _ in itertools.groupby(temp_terms))
 
     temp_list = [Term(x, False, len(x.intersection(my_letters)), None, 1, None,
-                      _make_binary(x), None) for x in temp_terms]
+                      _make_binary(x), None, None) for x in temp_terms]
     temp_list = sorted(temp_list, key=attrgetter('ones'))
     for idx, item in enumerate(temp_list):
         temp_list[idx] = item._replace(source=[idx], row=idx)
     return temp_list
 
-
 def _make_binary(new_term):
-    new_term = "".join(sorted(list(new_term)))
+    if isinstance(new_term, set):
+        new_term = "".join(sorted(list(new_term)))
     new_term = re.sub("[A-Za-z]'", "0", new_term)
     new_term = re.sub("[A-Za-z]", "1", new_term)
     return new_term
 
-
-# @coverage
 def _merge_terms_(term_list, gen):
     done = False
     new_terms = _create_new_terms_(term_list, gen)
@@ -364,12 +421,9 @@ def _merge_terms_(term_list, gen):
 
     return done
 
-
-# @coverage
-# @profile
 def _create_new_terms_(orig_term_list, gen):
-    # Takes a generation and puts it into a list of lists of terms grouped by the 
-    # number of "ones". 
+    # Takes a generation and puts it into a list of lists of terms grouped by the
+    # number of "ones".
     # Then successively compares items in one list with items from the next list to
     # find terms that can be merged
     used_dict = {}  # a dictionary for used items
@@ -379,15 +433,14 @@ def _create_new_terms_(orig_term_list, gen):
     working_list = [xterms for xterms in orig_term_list if xterms.generation == gen]
     working_list = [list(group) for key, group in
                     itertools.groupby(working_list, attrgetter('ones'))]
-    # last_ones = len(working_list) - 1
     current = 0
 
     while current < len(working_list) - 1:
-        # first_list, second_list = working_list[current], working_list[current + 1]
         for xterms in working_list[current]:
             for yterms in working_list[current + 1]:
                 sym_set = yterms.termset.symmetric_difference(xterms.termset)
                 # doing list(sym_set)[0][0] == list(sym_set)[1][0]: is expensive
+                # sym_set.pop.replace seems to be "cheaper"
                 if (len(sym_set) == 2 and
                         sym_set.pop().replace("'", "") == sym_set.pop().replace("'", "")):
                     used_dict[xterms.row] = True
@@ -397,7 +450,7 @@ def _create_new_terms_(orig_term_list, gen):
                     if source not in sources:
                         sources.append(source)
                         result.append(Term(new_term, False, len(new_term.intersection(
-                            set(string.ascii_letters))), source, (gen + 1), None, None, None))
+                            set(string.ascii_letters))), source, (gen + 1), None, None, None, None))
         current += 1
     result = sorted(result, key=attrgetter('ones'))
     for idx, _ in enumerate(result):
@@ -408,15 +461,13 @@ def _create_new_terms_(orig_term_list, gen):
         current = orig_term_list[key]
         orig_term_list[key] = Term(current.termset, True, current.ones,
                                    current.source, current.generation, None,
-                                   current.binary, current.row)
+                                   current.binary, current.row, current.dontcare)
 
     return result
-
 
 # ---- Finding Implicants / Final Result ---- #
 # _implicants_, _required_sources_, _make_find_dict_, and _check_combinations_ do the heavy
 # lifting to find the final reduced form
-# @coverage
 def _implicants_(term_list):
     '''
     Finds terms that will cover unused cases if the essential prime implicants are not
@@ -428,8 +479,11 @@ def _implicants_(term_list):
     for sources in [zed for zed in term_list if zed.used is False]:
         list_of_sources += list(itertools.chain(sources.source))
 
+    dont_cares = [item.row for item in term_list if item.dontcare and item.generation == 1]
+    list_of_sources = [val for val in list_of_sources if val not in dont_cares]
+
     required = [x for x in list_of_sources if list_of_sources.count(x) == 1]
-    keep_columns = _get_columns_(term_list, required)
+    keep_columns = _get_columns_(term_list, required, dont_cares)
 
     # if _get_columns_ ends with nothing in keep_columns it means essential prime implicants
     # are all that is needed so we are done
@@ -451,9 +505,7 @@ def _implicants_(term_list):
 
     return possible_terms
 
-
-# @coverage
-def _get_columns_(term_list, required):
+def _get_columns_(term_list, required, dont_cares):
     """
     term_list -- full list of terms
     required -- integers for terms that are essential prime implicants . . .
@@ -462,7 +514,7 @@ def _get_columns_(term_list, required):
     ignore = []
     keep = []
 
-    for index, term in [(i, v) for i, v in enumerate(term_list) if v.used is False]:
+    for index, term in [(i, v) for i, v in enumerate(term_list) if v.used is False and not v.dontcare]:
         # Find Terms in "needed" that exist in required, add them to the final result,
         # and add that Term's sources to the "columns" we can now ignore (already covered
         # terms)
@@ -472,14 +524,12 @@ def _get_columns_(term_list, required):
         # Otherwise add the sources to our list of "columns" we need to keep
         else:
             keep += itertools.chain(term.source)
-
+    ignore = ignore + dont_cares
     # create a list of the remaining 1st gen terms that we still need to find minterms for
     keep = list(set(keep) - set(ignore))
 
     return keep
 
-
-# @coverage
 def _make_find_dict_(term_list, keep_columns):
     # Creates a dictionary referencing the remaining tuples that can potentially complete
     # the minimized form.
@@ -495,9 +545,6 @@ def _make_find_dict_(term_list, keep_columns):
 
     return find_dict
 
-
-# @coverage
-# @profile
 def _check_combinations_(find_dict, term_list, keep_columns):
     matches = []
     possible_terms = defaultdict(list)
@@ -521,7 +568,7 @@ def _check_combinations_(find_dict, term_list, keep_columns):
                 temp_count += find_dict[idx].length
             if (set(keep_columns) == combined_sources
                     and (min_length == 0 or temp_count <= min_length)):
-                if (temp_count < min_length or min_length == 0):
+                if temp_count < min_length or min_length == 0:
                     del matches[:]
                     min_length = temp_count
                 matches.append(items)
@@ -535,12 +582,54 @@ def _check_combinations_(find_dict, term_list, keep_columns):
 
     return possible_terms
 
+def result_to_int(res):
+    """
+    Takes the "result" list of Term tuples and uses the binary field from the first
+    generation to produce integer representation.
+
+    E.g.
+    a, b, c = quinemc(248, full_results=True)
+    q = result_to_int(b) # q would now be 248
+
+    """
+    return sum(2**(int(x.binary, 2)) for x in res if x.generation is 1)
+
+def alternatives(fullterms, alts):
+    """
+    Creates a list of all possible shortest combos found when multiple options are available.
+
+    E.g.
+    a, b, c = quinemc(886, full_results=True)
+    alts = alternatives(b, c)
+    ["AB'C' + A'CD' + A'BD' + A'C'D",
+     "AB'C' + A'CD' + A'BC' + B'C'D",
+     "AB'C' + A'CD' + A'BC' + A'C'D"]
+
+    """
+    result = []
+    required = ["".join(sorted(items.termset)) for items in fullterms if items.final is "Required"]
+    others = []
+    for _, alts in alts.items():
+        temp = ["".join(sorted(current.termset)) for current in alts]
+        others.append(temp)
+
+    new_list = []
+    for alts in others:
+        new_list.append(required + alts)
+
+    result += [' + '.join(miniterms) for miniterms in new_list]
+
+    return result
 
 if __name__ == "__main__":
     #quinemc(42589768824798729982179, True, True)
     #print(canonical(9927465))
+    #quinemc([24, 32, 2, 5, 7])
+    #quinemc(2046)
+    quinemc([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [4, 5]])
     #quinemc(638, 1, 1)
-    quinemc(to_cdnf("A + C", 1))
+    # quinemc(638, 1, 1)
+    #quinemc(to_cdnf("A + C", 1))
     #to_cdnf("B'CD + A'C'D' + A'B'D'")
     #quinemc(canonical(27856))
     # quinemc(to_cdnf("A + FI"))
@@ -553,7 +642,7 @@ if __name__ == "__main__":
     #print("255", quinemc(255))
     #print("0", quinemc(0))
     # canonical(2046)
-    pass
+    #pass
 
 # 65024
 # 15872
