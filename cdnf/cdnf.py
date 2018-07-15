@@ -179,6 +179,8 @@ def canonical(item, highorder_a=True, includef=False):
 
     includef (boolean): When True will append "F(x) = " before the result string
 
+    asdf
+
     '''
     if not isinstance(item, int):
         return ValueError(item, "canonical(x) requires an integer.")

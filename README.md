@@ -15,7 +15,7 @@ cd cdnf
 
 python setup.py
 
-... OR ...
+... OR ... 
 
 pip install git+git@github.com:jmbriody/cdnf.git
 
