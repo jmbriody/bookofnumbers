@@ -40,3 +40,12 @@ def test_quin():
     assert set(r) == set(second_result)
     assert len(b) == 26
 
+    r, s, t = quinemc(743, 1, 1)
+    assert result_to_int(s) == 743
+    assert alternatives(s, t)[2] == "B'C'D + A'B'D' + A'BC + A'BD"
+
+    assert quinemc([743, [0, 1]]) == "B'C'D + A'CD' + A'BD"
+
+
+
+
