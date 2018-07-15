@@ -25,6 +25,7 @@ To use just do `from cdnf import *`
 
 ## The things it does
 canonical(item, highorder_a, includef):
+
     Where it all began. Takes and int (item) and returns the Canonical Disjunctive Normal Form for that int. So using 248 as an example (binary version is 1111000) the CDNF is "ABC' + ABC + AB'C' + AB'C + A'BC". Getting that is `canonical(248)`.
 
     highorder_a -- determines whether A is the high order bit (default) or low order bit.
@@ -32,6 +33,7 @@ canonical(item, highorder_a, includef):
     includef -- determines whether the input is returned as part of the result. 
 
 to_cdnf(item, ranged=False):
+
     This is where we get funky. This will take a minimized function and return the CDNF version of it. Using "ranged" will add missing characters. So . . .
     to_cdnf("AB + D") will return "ABD' + ABD + AB'D + A'BD + A'B'D" (note no "C").
     to_cdnf("AB + D", ranged=True) will return  "ABCD' + ABCD + ABC'D' + ABC'D + AB'CD + AB'C'D + A'BCD + A'BC'D + A'B'CD + A'B'C'D"
@@ -39,6 +41,7 @@ to_cdnf(item, ranged=False):
     Using ranged can be dangerous `to_cdnf("A + I", ranged=True)` returns 384 terms; `to_cdnf("A + Z", ranged=True)` returns 50,000,000 terms. 
 
 quinemc(myitem, highorder_a=True, full_results=False):
+
     Short for Quinne-McCluskey algorithm:
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
 
@@ -65,10 +68,12 @@ quinemc(myitem, highorder_a=True, full_results=False):
 
 ## Helper functions
 result_to_int(t):
+
     If you run `r, t, p = quinemc(to_cdnf("B'C'D + A'CD' + A'BD + A'B'D'"), full_results=True)`
     result_to_int(t) will equal 743
 
 alternatives(t, p):
+
     Similarly, running `r, t, p = quinemc(to_cdnf("B'C'D + A'CD' + A'BD + A'B'D'"),
     full_results=True)`, then alternatives(t, p) will provide a list of equivalent reduced
     forms. (Majority of items do **not** have alternatives 743 just happens to have some).
@@ -82,10 +87,11 @@ alternatives(t, p):
 
 ## An interesting example
 r, s, t = quinemc(743, full_results=True)
-r will be:
-"B'C'D + A'CD' + A'BD + A'B'D'"
+
+r will be: "B'C'D + A'CD' + A'BD + A'B'D'"
 
 s . . .
+
 [Term(termset={"B'", "A'", "D'", "C'"}, used=True, ones=0, source=[0], generation=1, final=None, binary='0000', row=0, dontcare=None),
  Term(termset={"B'", "A'", "D'", 'C'}, used=True, ones=1, source=[1], generation=1, final=None, binary='0010', row=1, dontcare=None),
  Term(termset={"B'", "A'", 'D', "C'"}, used=True, ones=1, source=[2], generation=1, final=None, binary='0001', row=2, dontcare=None),
@@ -102,6 +108,7 @@ s . . .
  Term(termset={"A'", 'D', 'B'}, used=False, ones=2, source=[5, 6], generation=2, final='Added', binary=None, row=13, dontcare=None)]
 
 t . . .
+
 defaultdict(list,
             {0: [Term(termset={"B'", "A'", "D'"}, used=False, ones=0, source=[0, 1], generation=2, final='Added', binary=None, row=7, dontcare=None),
               Term(termset={'C', "A'", "D'"}, used=False, ones=1, source=[1, 4], generation=2, final='Added', binary=None, row=9, dontcare=None),
