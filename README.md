@@ -48,6 +48,7 @@ Short for Quinne-McCluskey algorithm:
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
 
 myitem: can be an integer, string representing a canonical boolean expression, or a list of minterms for a canonical expression.
+
     --integer: first passed to canonical to get the normal form
     --string or list: must contain minterms that are canonical normal form terms. Terms can be
     composed of any alpha characters (plus (')).
@@ -55,9 +56,12 @@ myitem: can be an integer, string representing a canonical boolean expression, o
 highorder_a: Same as for canonical. Only has any affect if "myitem" is an int.
 
 full_results: In the default mode "False" only a string containing the minimized function is returned. When True three items are returned:
-    --result: Minimized expression
-    --term_list: List of Named Tuples "termset" of all terms used in the reduction/minimize process
-    --possibles: A dictionary of possible results. A sparse few set of equations can be reduced to
+
+--result: Minimized expression
+
+--term_list: List of Named Tuples "termset" of all terms used in the reduction/minimize process
+
+--possibles: A dictionary of possible results. A sparse few set of equations can be reduced to
     other equations of the same length. This is a dictionary of those possible alternatives for the
     occasional items where this occurs. For example with quinemc(743) all of ...
     
@@ -66,7 +70,7 @@ full_results: In the default mode "False" only a string containing the minimized
     "B'C'D + A'B'D' + A'BC + A'BD",
     "B'C'D + A'B'C' + A'CD' + A'BD"
     
-    are equivalent reductions.
+are equivalent reductions.
 
 ## Helper functions
 **result_to_int(t)**
