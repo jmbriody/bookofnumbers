@@ -10,7 +10,9 @@ So, this started as a simple app to take an int and create its relevant CDNF (Ca
 There are no requirements and no extra stuff needed--it is pure python. Should work with 2.7, 3.4, 3.5, and 3.6. To install you can . . .
 
 git clone git@github.com:jmbriody/cdnf.git
+
 cd cdnf
+
 python setup.py
 
 ... OR ...
