@@ -96,6 +96,7 @@ r will be: "B'C'D + A'CD' + A'BD + A'B'D'"
 
 s . . .
 
+`
 [Term(termset={"B'", "A'", "D'", "C'"}, used=True, ones=0, source=[0], generation=1, final=None, binary='0000', row=0, dontcare=None),
  Term(termset={"B'", "A'", "D'", 'C'}, used=True, ones=1, source=[1], generation=1, final=None, binary='0010', row=1, dontcare=None),
  Term(termset={"B'", "A'", 'D', "C'"}, used=True, ones=1, source=[2], generation=1, final=None, binary='0001', row=2, dontcare=None),
@@ -110,9 +111,11 @@ s . . .
  Term(termset={"A'", 'D', "C'"}, used=False, ones=1, source=[2, 5], generation=2, final=None, binary=None, row=11, dontcare=None),
  Term(termset={'C', "A'", 'B'}, used=False, ones=2, source=[4, 6], generation=2, final=None, binary=None, row=12, dontcare=None),
  Term(termset={"A'", 'D', 'B'}, used=False, ones=2, source=[5, 6], generation=2, final='Added', binary=None, row=13, dontcare=None)]
+`
 
 t . . .
 
+`
 defaultdict(list,
             {0: [Term(termset={"B'", "A'", "D'"}, used=False, ones=0, source=[0, 1], generation=2, final='Added', binary=None, row=7, dontcare=None),
               Term(termset={'C', "A'", "D'"}, used=False, ones=1, source=[1, 4], generation=2, final='Added', binary=None, row=9, dontcare=None),
@@ -126,6 +129,6 @@ defaultdict(list,
              3: [Term(termset={"B'", "A'", "C'"}, used=False, ones=0, source=[0, 2], generation=2, final=None, binary=None, row=8, dontcare=None),
               Term(termset={'C', "A'", "D'"}, used=False, ones=1, source=[1, 4], generation=2, final='Added', binary=None, row=9, dontcare=None),
               Term(termset={"A'", 'D', 'B'}, used=False, ones=2, source=[5, 6], generation=2, final='Added', binary=None, row=13, dontcare=None)]})
-
+`
 
 
