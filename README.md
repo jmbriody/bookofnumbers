@@ -24,7 +24,7 @@ pip install git+git@github.com:jmbriody/cdnf.git
 To use just do `from cdnf import *`
 
 ## The things it does
-canonical(item, highorder_a, includef):
+**canonical(item, highorder_a, includef)**
 
 Where it all began. Takes and int (item) and returns the Canonical Disjunctive Normal Form for that int. So using 248 as an example (binary version is 1111000) the CDNF is "ABC' + ABC + AB'C' + AB'C + A'BC". Getting that is `canonical(248)`.
 
@@ -32,7 +32,7 @@ highorder_a -- determines whether A is the high order bit (default) or low order
 
 includef -- determines whether the input is returned as part of the result. 
 
-to_cdnf(item, ranged=False):
+**to_cdnf(item, ranged=False)**
 
 This is where we get funky. This will take a minimized function and return the CDNF version of it. Using "ranged" will add missing characters. So . . .
 
@@ -42,7 +42,7 @@ This is where we get funky. This will take a minimized function and return the C
 
 Using ranged can be dangerous `to_cdnf("A + I", ranged=True)` returns 384 terms; `to_cdnf("A + Z", ranged=True)` returns 50,000,000 terms. 
 
-quinemc(myitem, highorder_a=True, full_results=False):
+**quinemc(myitem, highorder_a=True, full_results=False)**
 
 Short for Quinne-McCluskey algorithm:
     https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm
@@ -67,11 +67,11 @@ full_results: In the default mode "False" only a string containing the minimized
     are equivalent reductions.
 
 ## Helper functions
-result_to_int(t):
+**result_to_int(t)**
 
 If you run `r, t, p = quinemc(to_cdnf("B'C'D + A'CD' + A'BD + A'B'D'"), full_results=True)` result_to_int(t) will equal 743
 
-alternatives(t, p):
+**alternatives(t, p)**
 
 Similarly, running `r, t, p = quinemc(to_cdnf("B'C'D + A'CD' + A'BD + A'B'D'"), full_results=True)`, then alternatives(t, p) will provide a list of equivalent reduced forms. (Majority of items do **not** have alternatives 743 just happens to have some). In this case (for 743) the main result (r) is "B'C'D + A'CD' + A'BD + A'B'D'" 
 
