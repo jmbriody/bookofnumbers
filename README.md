@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/jmbriody/cdnf/badge.svg?branch=master)](https://coveralls.io/github/jmbriody/cdnf?branch=master)
 
 # CDNF and Quine McCluskey in Python
-So, this started as a simple app to take an int and create its relevant CDNF (Canonical Disjunctive Noraml Form) based on Section 3.4 of "Digital Design" from Randall Hyde's "The Art of Assembly Language Programming". When that proved to be too easy I added a quine mccluskey implementation. Unlike other implementations I've seen results are returned using Alpha characters. E.g. "ABD' + C" rather than "11-0 + --1-". Sorry.
+So, this started as a simple app to take an int and create its relevant CDNF (Canonical Disjunctive Normal Form) based on Section 3.4 of "Digital Design" from Randall Hyde's "The Art of Assembly Language Programming". When that proved to be too easy I added a quine mccluskey implementation. Unlike other implementations I've seen results are returned using Alpha characters. E.g. "ABD' + C" rather than "11-0 + --1-". Sorry.
 
 ## Installation
 There are no requirements and no extra stuff needed--it is pure python. Should work with 2.7, 3.4, 3.5, and 3.6. To install you can . . .
@@ -21,12 +21,12 @@ pip install git+git@github.com:jmbriody/cdnf.git
 
 . . . As always--do this in a virtual environment. 
 
-To use just do `from cdnf import *`
+To use just do `from cdnf import *` or more pythonicly `import cdnf as nf`
 
 ## The things it does
 **canonical(item, highorder_a, includef)**
 
-Where it all began. Takes and int (item) and returns the Canonical Disjunctive Normal Form for that int. So using 248 as an example (binary version is 1111000) the CDNF is "ABC' + ABC + AB'C' + AB'C + A'BC". Getting that is `canonical(248)`.
+Where it all began. Takes and int (item) and returns the Canonical Disjunctive Normal Form for that int. So using 248 as an example (binary version is 1111000) the CDNF is "ABC' + ABC + AB'C' + AB'C + A'BC". Getting that is `nf.canonical(248)`.
 
 highorder_a -- determines whether A is the high order bit (default) or low order bit.
 
@@ -36,9 +36,9 @@ includef -- determines whether the input is returned as part of the result.
 
 This is where we get funky. This will take a minimized function and return the CDNF version of it. Using "ranged" will add missing characters. So . . .
 
-    to_cdnf("AB + D") will return "ABD' + ABD + AB'D + A'BD + A'B'D" (note no "C").
+    nf.to_cdnf("AB + D") will return "ABD' + ABD + AB'D + A'BD + A'B'D" (note no "C").
 
-    to_cdnf("AB + D", ranged=True) will return  "ABCD' + ABCD + ABC'D' + ABC'D + AB'CD + AB'C'D + A'BCD + A'BC'D + A'B'CD + A'B'C'D"
+    nf.to_cdnf("AB + D", ranged=True) will return  "ABCD' + ABCD + ABC'D' + ABC'D + AB'CD + AB'C'D + A'BCD + A'BC'D + A'B'CD + A'B'C'D"
 
 Using ranged can be dangerous `to_cdnf("A + I", ranged=True)` returns 384 terms; `to_cdnf("A + Z", ranged=True)` returns 50,000,000 terms. 
 
