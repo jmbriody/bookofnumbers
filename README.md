@@ -19,7 +19,7 @@ python setup.py
 
 pip install git+git@github.com:jmbriody/cdnf.git
 
-. . . As always--do this crud in a virtual environment. 
+. . . As always--do this in a virtual environment. 
 
 To use just do `from cdnf import *`
 
