@@ -214,9 +214,9 @@ def _minterms_(terms, highorder_a):
         terms = terms[::-1]
 
     # convert 010 to A'BC'
-    for i, terms in enumerate(terms):
+    for i, term in enumerate(terms):
         result += alpha[i]
-        if terms == '0':
+        if term == '0':
             result += "'"
     return result
 
@@ -316,8 +316,7 @@ def quinemc(myitem, highorder_a=True, full_results=False):
 
     if full_results:
         return _minimize_(cdnf, dont_care)
-    else:
-        return _minimize_(cdnf, dont_care)[0]
+    return _minimize_(cdnf, dont_care)[0]
 
 def _create_dont_care_(dontcare):
     if all(isinstance(i, str) for i in dontcare):
@@ -516,7 +515,8 @@ def _get_columns_(term_list, required, dont_cares):
     ignore = []
     keep = []
 
-    for index, term in [(i, v) for i, v in enumerate(term_list) if v.used is False and not v.dontcare]:
+    for index, term in [(i, v) for i, v in enumerate(term_list)
+                        if v.used is False and not v.dontcare]:
         # Find Terms in "needed" that exist in required, add them to the final result,
         # and add that Term's sources to the "columns" we can now ignore (already covered
         # terms)
@@ -594,7 +594,7 @@ def result_to_int(res):
     q = result_to_int(b) # q would now be 248
 
     """
-    return sum(2**(int(x.binary, 2)) for x in res if x.generation is 1)
+    return sum(2**(int(x.binary, 2)) for x in res if x.generation == 1)
 
 def alternatives(fullterms, alts):
     """
@@ -609,15 +609,15 @@ def alternatives(fullterms, alts):
 
     """
     result = []
-    required = ["".join(sorted(items.termset)) for items in fullterms if items.final is "Required"]
+    required = ["".join(sorted(items.termset)) for items in fullterms if items.final == "Required"]
     others = []
-    for _, alts in alts.items():
-        temp = ["".join(sorted(current.termset)) for current in alts]
+    for _, alt in alts.items():
+        temp = ["".join(sorted(current.termset)) for current in alt]
         others.append(temp)
 
     new_list = []
-    for alts in others:
-        new_list.append(required + alts)
+    for alt in others:
+        new_list.append(required + alt)
 
     result += [' + '.join(miniterms) for miniterms in new_list]
 
