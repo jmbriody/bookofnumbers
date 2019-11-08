@@ -7,7 +7,7 @@
 So, this started as a simple app to take an int and create its relevant CDNF (Canonical Disjunctive Normal Form) based on Section 3.4 of "Digital Design" from Randall Hyde's "The Art of Assembly Language Programming". When that proved to be too easy I added a quine mccluskey implementation. Unlike other implementations I've seen results are returned using Alpha characters. E.g. "ABD' + C" rather than "11-0 + --1-". Sorry.
 
 ## Installation
-There are no requirements and no extra stuff needed--it is pure python. Should work with 2.7, 3.4, 3.5, and 3.6. To install you can . . .
+There are no requirements and no extras needed--it is pure python. Should work with 2.7, 3.4, 3.5, and 3.6. To install you can . . .
 
 git clone git@github.com:jmbriody/cdnf.git
 
